@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Profile_header_all, User_header_all, UserProfileAssignment
+from .models import Profile_header_all, User_header_all
 
 @admin.register(Profile_header_all)
 class ProfileHeaderAdmin(admin.ModelAdmin):
@@ -7,9 +7,4 @@ class ProfileHeaderAdmin(admin.ModelAdmin):
 
 @admin.register(User_header_all)
 class UserHeaderAdmin(admin.ModelAdmin):
-    list_display = ('username', 'name', 'designation', 'mobile_no')
-
-@admin.register(UserProfileAssignment)
-class UserProfileAssignmentAdmin(admin.ModelAdmin):
-    list_display = ('user', 'profile', 'line_no', 'is_active')
-    list_filter = ('is_active',)
+    list_display = ('id','user_id','line_no', 'username', 'name', 'email', 'designation', 'mobile_no','profile')

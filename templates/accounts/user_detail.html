@@ -3,17 +3,18 @@
 {% block content %}
 <h1>{{ user.name }} ({{ user.username }})</h1>
 <p>Designation: {{ user.designation }}</p>
-<p>Mobile: {{ user.mobile_no }}</p>
+<p>Mobile: {{ user.mobile_no|default:"--" }}</p>
 
 <h2>Assigned Profiles</h2>
 <ul>
     {% for assignment in assignments %}
         <li>
-            {{ assignment.profile.profile_name }} (Line: {{ assignment.line_no }}, 
-            Status: {{ assignment.is_active|yesno:"Active,Inactive" }})
-            <a href="{% url 'accounts:toggle_profile_status' user.username assignment.line_no %}?is_active={% if assignment.is_active %}false{% else %}true{% endif %}">
-                {% if assignment.is_active %}Deactivate{% else %}Activate{% endif %}
+            Profile ID: {{ assignment.profile.profile_id|default:"--" }} (Line: {{ assignment.line_no }})
+            {% if assignment.profile %}
+            <a href="{% url 'accounts:toggle_profile_status' user.username assignment.line_no %}?is_active=false">
+                Deactivate
             </a>
+            {% endif %}
         </li>
     {% empty %}
         <li>No profiles assigned (Default: Line 0, Active)</li>
@@ -29,4 +30,6 @@
     </select>
     <button type="submit">Assign</button>
 </form>
+
+<p><a href="{% url 'accounts:all_users' %}">View All Users (Table Format)</a></p>
 {% endblock %}

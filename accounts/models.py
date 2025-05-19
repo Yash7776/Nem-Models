@@ -11,62 +11,93 @@ class Profile_header_all(models.Model):
         return f"{self.profile_id} - {self.profile_name}"
 
 class User_header_all(models.Model):
+    user_id = models.IntegerField()  # To group user entries
+    line_no = models.IntegerField(default=0)  # To indicate the assignment slot
     name = models.CharField(max_length=150)
-    username = models.CharField(max_length=150, unique=True)
+    email = models.CharField(max_length=150, blank=True)
+    username = models.CharField(max_length=150)
     password = models.CharField(max_length=128)
     designation = models.CharField(max_length=100)
-    mobile_no = models.CharField(max_length=15, unique=True)
-
-    profiles = models.ManyToManyField(
+    mobile_no = models.CharField(max_length=15, blank=True)
+    profile = models.ForeignKey(
         Profile_header_all,
-        through='UserProfileAssignment',
+        on_delete=models.SET_NULL,
+        null=True,
         blank=True,
-        related_name='users'
+        related_name='user_assignments'
     )
 
+    class Meta:
+        unique_together = ('user_id', 'line_no')  # Ensure unique line_no per user
+
     def __str__(self):
-        return self.username
+        return f"{self.username} (Line {self.line_no})"
 
     def assign_profile(self, profile):
-        from django.db.models import Max
-        max_line = self.profile_assignments.aggregate(Max('line_no'))['line_no__max'] or 0
-        return UserProfileAssignment.objects.create(
-            user=self,
-            profile=profile,
-            line_no=max_line + 1,
-            is_active=True
+        """Assign a profile to the user with the next available line number."""
+        if not isinstance(profile, Profile_header_all):
+            raise ValueError("Invalid profile instance")
+        
+        # Check if the profile is already assigned to this user
+        if User_header_all.objects.filter(user_id=self.user_id, profile=profile).exists():
+            return
+
+        # Get the next line number for this user
+        max_line = User_header_all.objects.filter(user_id=self.user_id).aggregate(
+            models.Max('line_no')
+        )['line_no__max'] or -1
+        next_line_no = max_line + 1
+
+        # Create a new User_header_all instance for this assignment
+        User_header_all.objects.create(
+            user_id=self.user_id,
+            line_no=next_line_no,
+            name=self.name,
+            email=self.email,
+            username=self.username,
+            password=self.password,
+            designation=self.designation,
+            mobile_no=self.mobile_no,
+            profile=profile
         )
 
     def set_profile_active(self, line_no, active=True):
-        assignment = self.profile_assignments.get(line_no=line_no)
-        assignment.is_active = active
-        assignment.save()
+        """Activate or deactivate a profile at the specified line number."""
+        assignment = User_header_all.objects.filter(user_id=self.user_id, line_no=line_no).first()
+        if not assignment:
+            raise ValueError(f"No profile found with line number {line_no}")
+        # Simulate active/inactive by setting profile to None if inactive
+        if active and assignment.profile is None:
+            # You might need to reassign a profile here; for now, raise an error
+            raise ValueError("Cannot activate without a profile. Reassign a profile first.")
+        elif not active:
+            assignment.profile = None
+            assignment.save()
         return assignment
 
     def get_active_profiles(self):
-        return Profile_header_all.objects.filter(
-            users=self,
-            userprofileassignment__is_active=True
-        )
+        """Return a list of active Profile_header_all instances for this user."""
+        assignments = User_header_all.objects.filter(user_id=self.user_id, profile__isnull=False)
+        return [assignment.profile for assignment in assignments]
 
     def reset_profile_line_no(self):
-        """Reset profile assignments to default state (no profiles assigned)."""
-        self.profile_assignments.all().delete()
-
-class UserProfileAssignment(models.Model):
-    user = models.ForeignKey(
-        User_header_all,
-        on_delete=models.CASCADE,
-        related_name='profile_assignments'
-    )
-    profile = models.ForeignKey(Profile_header_all, on_delete=models.CASCADE)
-    line_no = models.PositiveIntegerField()
-    is_active = models.BooleanField(default=True)
-
-    class Meta:
-        unique_together = (('user', 'line_no'), ('user', 'profile'))
-        ordering = ['line_no']
-
-    def __str__(self):
-        status = 'active' if self.is_active else 'inactive'
-        return f"{self.user.username} slot #{self.line_no} → {self.profile.profile_id} ({status})"
+        """Reset profile assignments to default state (line_no=0)."""
+        # Delete all assignments for this user except line_no=0
+        User_header_all.objects.filter(user_id=self.user_id).exclude(line_no=0).delete()
+        # Ensure line_no=0 exists with no profile
+        default_assignment, _ = User_header_all.objects.get_or_create(
+            user_id=self.user_id,
+            line_no=0,
+            defaults={
+                'name': self.name,
+                'email': self.email,
+                'username': self.username,
+                'password': self.password,
+                'designation': self.designation,
+                'mobile_no': self.mobile_no,
+                'profile': None
+            }
+        )
+        if default_assignment.profile:
+            default_assignment.profile = None
+            default_assignment.save()
