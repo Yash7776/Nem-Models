@@ -3,14 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Profile Manager{% endblock %}</title>
-    {% load static %}
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <title>{% block title %}My App{% endblock %}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        form {
+            margin-top: 20px;
+        }
+        label {
+            display: inline-block;
+            width: 120px;
+        }
+        input, select, button {
+            margin: 5px 0;
+            padding: 5px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        {% block content %}
-        {% endblock %}
-    </div>
+    <nav>
+        <a href="{% url 'accounts:all_users' %}">All Users</a> |
+        <a href="{% url 'accounts:create_user' %}">Create New User</a> |
+        <a href="{% url 'admin:index' %}">Admin</a>
+    </nav>
+    <hr>
+    {% block content %}
+    {% endblock %}
 </body>
 </html>

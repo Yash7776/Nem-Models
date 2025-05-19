@@ -34,7 +34,7 @@ ROOT_URLCONF = 'profile_manager.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [BASE_DIR / 'templates'],  # Ensure templates are in a 'templates' directory at the project root
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -46,6 +46,9 @@ TEMPLATES = [
         },
     },
 ]
+
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']
 
 WSGI_APPLICATION = 'profile_manager.wsgi.application'
 

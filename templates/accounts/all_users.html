@@ -22,12 +22,12 @@
             <td>{{ row.id }}</td>
             <td>{{ row.user_id }}</td>
             <td>{{ row.line_no }}</td>
-            <td>{{ row.name }}</td>
-            <td>{{ row.email }}</td>
-            <td>{{ row.username }}</td>
-            <td>{{ row.password }}</td>
-            <td>{{ row.mob }}</td>
-            <td>{{ row.profile_id }}</td>
+            <td>{% if row.line_no == 0 %}{{ row.name }}{% else %}--{% endif %}</td>
+            <td>{% if row.line_no == 0 %}{{ row.email|default:"--" }}{% else %}--{% endif %}</td>
+            <td>{% if row.line_no == 0 %}{{ row.username }}{% else %}--{% endif %}</td>
+            <td>{% if row.line_no == 0 %}{{ row.password }}{% else %}--{% endif %}</td>
+            <td>{% if row.line_no == 0 %}{{ row.mobile_no|default:"--" }}{% else %}--{% endif %}</td>
+            <td>{{ row.profile.profile_name|default:"--" }}</td>
         </tr>
         {% endfor %}
     </tbody>
