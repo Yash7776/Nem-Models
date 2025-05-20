@@ -56,6 +56,7 @@ def all_users(request):
     return render(request, 'accounts/all_users.html', {'rows': rows})
 
 def create_user(request):
+    profiles = Profile_header_all.objects.all()
     if request.method == 'POST':
         username = request.POST.get('username')
         name = request.POST.get('name')
@@ -63,8 +64,14 @@ def create_user(request):
         password = request.POST.get('password')
         designation = request.POST.get('designation')
         mobile_no = request.POST.get('mobile_no', '')
+        profile_id = request.POST.get('profile')
 
         user_id = User_header_all.get_or_assign_user_id(username)
+
+        # Set the profile directly on the initial row (line_no=0)
+        profile = None
+        if profile_id:
+            profile = get_object_or_404(Profile_header_all, profile_id=profile_id)
 
         user = User_header_all.objects.create(
             user_id=user_id,
@@ -75,11 +82,13 @@ def create_user(request):
             password=password,
             designation=designation,
             mobile_no=mobile_no,
-            profile=None,
+            profile=profile,  # Assign the profile directly here
             is_active=True
         )
+
         return redirect('accounts:user_detail', username=username)
-    return render(request, 'accounts/create_user.html')
+
+    return render(request, 'accounts/create_user.html', {'profiles': profiles})
 
 def edit_user(request, user_id):
     user = get_object_or_404(User_header_all, id=user_id)

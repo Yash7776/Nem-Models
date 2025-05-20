@@ -5,11 +5,19 @@
 <p><strong>Designation:</strong> {{ user.designation }}</p>
 <p><strong>Mobile:</strong> {{ user.mobile_no|default:"--" }}</p>
 
+{% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+
 <h2>Assigned Profiles</h2>
 <ul>
     {% for assignment in assignments %}
         <li>
-            Profile ID: {{ assignment.profile.profile_name|default:"--" }} (Line: {{ assignment.line_no }}, 
+            Profile ID: {{ assignment.profile.profile_id|default:"--" }} (Line: {{ assignment.line_no }}, 
             Status: {{ assignment.is_active|yesno:"Active,Inactive" }})
             {% if assignment.profile %}
             <a href="{% url 'accounts:toggle_profile_status' user.username assignment.line_no %}?is_active={% if assignment.is_active %}false{% else %}true{% endif %}">
@@ -18,7 +26,7 @@
             {% endif %}
         </li>
     {% empty %}
-        <li>No profiles assigned (Default: Line 0, Active)</li>
+        <li>No profiles assigned</li>
     {% endfor %}
 </ul>
 
