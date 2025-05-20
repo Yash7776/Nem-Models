@@ -14,6 +14,7 @@
             <th>password</th>
             <th>mob</th>
             <th>profile_id</th>
+            <th>View Profile</th>
         </tr>
     </thead>
     <tbody>
@@ -28,6 +29,8 @@
             <td>{% if row.line_no == 0 %}{{ row.password }}{% else %}--{% endif %}</td>
             <td>{% if row.line_no == 0 %}{{ row.mobile_no|default:"--" }}{% else %}--{% endif %}</td>
             <td>{{ row.profile.profile_name|default:"--" }}</td>
+            <td><a href="/user/{{row.username}}" class="btn btn-info">View</a></td>
+
         </tr>
         {% endfor %}
     </tbody>
