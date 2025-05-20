@@ -28,10 +28,27 @@ def assign_profile(request, username):
         messages.error(request, "Failed to assign profile due to a database error. Please try again.")
     return redirect('accounts:user_detail', username=username)
 
+def assign_profile_from_edit(request, username):
+    user = get_object_or_404(User_header_all, username=username, line_no=0)
+    profile_id = request.GET.get('profile_id')
+    if not profile_id:
+        messages.error(request, "Please select a profile to assign.")
+        return redirect('accounts:edit_user', user_id=user.id)
+    profile = get_object_or_404(Profile_header_all, profile_id=profile_id)
+    try:
+        user.assign_profile(profile)
+        messages.success(request, f"Profile {profile_id} assigned successfully.")
+    except IntegrityError:
+        messages.error(request, "Failed to assign profile due to a database error. Please try again.")
+    return redirect('accounts:edit_user', user_id=user.id)
+
 def toggle_profile_status(request, username, line_no):
     user = get_object_or_404(User_header_all, username=username, line_no=0)
     is_active = request.GET.get('is_active', 'true').lower() == 'true'
+    redirect_to = request.GET.get('redirect_to', 'detail')
     user.set_profile_active(line_no, is_active)
+    if redirect_to == 'edit':
+        return redirect('accounts:edit_user', user_id=user.id)
     return redirect('accounts:user_detail', username=username)
 
 def all_users(request):
@@ -67,6 +84,7 @@ def create_user(request):
 def edit_user(request, user_id):
     user = get_object_or_404(User_header_all, id=user_id)
     profiles = Profile_header_all.objects.all()
+    assignments = User_header_all.objects.filter(user_id=user.user_id).order_by('line_no')
 
     if request.method == 'POST':
         name = request.POST.get('name')
@@ -77,7 +95,6 @@ def edit_user(request, user_id):
         mobile_no = request.POST.get('mobile_no', '')
         profile_id = request.POST.get('profile')
         
-        # Update the user's details
         user.name = name
         user.email = email
         user.password = password
@@ -85,15 +102,16 @@ def edit_user(request, user_id):
         user.mobile_no = mobile_no
         user.profile = Profile_header_all.objects.get(id=profile_id) if profile_id else None
 
-        # Handle username change: update all rows with the same user_id
         if user.username != username:
-            # Check if the new username already exists for a different user_id
             existing_user = User_header_all.objects.filter(username=username).exclude(user_id=user.user_id).first()
             if existing_user:
                 messages.error(request, f"Username '{username}' is already taken by another user.")
-                return render(request, 'accounts/edit_user.html', {'user': user, 'profiles': profiles})
+                return render(request, 'accounts/edit_user.html', {
+                    'user': user,
+                    'profiles': profiles,
+                    'assignments': assignments,
+                })
 
-            # Update username for all rows with the same user_id
             User_header_all.objects.filter(user_id=user.user_id).update(username=username)
             user.username = username
 
@@ -101,4 +119,8 @@ def edit_user(request, user_id):
         messages.success(request, "User details updated successfully.")
         return redirect('accounts:all_users')
 
-    return render(request, 'accounts/edit_user.html', {'user': user, 'profiles': profiles})
+    return render(request, 'accounts/edit_user.html', {
+        'user': user,
+        'profiles': profiles,
+        'assignments': assignments,
+    })
