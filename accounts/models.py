@@ -26,22 +26,21 @@ class UniqueIdHeaderAll(models.Model):
         super().save(*args, **kwargs)
 
     def get_next_id(self):
-        """Generate the next ID and update last_id."""
         if not self.last_id:
             last_number = 1
-            self.last_id = "1"  # Start from "1" instead of "00001"
+            self.last_id = "1"
         else:
             last_number = int(self.last_id) + 1
-            self.last_id = str(last_number)  # Store as "2", "3", etc., without leading zeros
+            self.last_id = str(last_number)
         self.save()
-        return last_number  # Return the numeric ID for user_id
+        return last_number
 
     def __str__(self):
         return f"{self.prefix}_{self.last_id} for {self.id_for} in {self.table_name}"
 
 class User_header_all(models.Model):
     user_id = models.IntegerField()
-    line_no = models.IntegerField(default=0)
+    line_no = models.IntegerField(default=1)  # Changed default to 1
     name = models.CharField(max_length=150)
     email = models.CharField(max_length=150, blank=True)
     username = models.CharField(max_length=150)
@@ -95,7 +94,7 @@ class User_header_all(models.Model):
                 models.Max('line_no')
             )['line_no__max']
             if max_line is None:
-                max_line = -1
+                max_line = 0  # Adjusted for starting from 1
             next_line_no = max_line + 1
 
             User_header_all.objects.create(
@@ -124,10 +123,10 @@ class User_header_all(models.Model):
         return [assignment.profile for assignment in assignments]
 
     def reset_profile_line_no(self):
-        User_header_all.objects.filter(user_id=self.user_id).exclude(line_no=0).delete()
+        User_header_all.objects.filter(user_id=self.user_id).exclude(line_no=1).delete()
         default_assignment, _ = User_header_all.objects.get_or_create(
             user_id=self.user_id,
-            line_no=0,
+            line_no=1,  # Changed to 1
             defaults={
                 'name': self.name,
                 'email': self.email,
