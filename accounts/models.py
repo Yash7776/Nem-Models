@@ -26,14 +26,15 @@ class UniqueIdHeaderAll(models.Model):
         super().save(*args, **kwargs)
 
     def get_next_id(self):
+        """Generate the next ID and update last_id."""
         if not self.last_id:
             last_number = 1
-            self.last_id = "00001"
+            self.last_id = "1"  # Start from "1" instead of "00001"
         else:
             last_number = int(self.last_id) + 1
-            self.last_id = f"{last_number:05d}"
+            self.last_id = str(last_number)  # Store as "2", "3", etc., without leading zeros
         self.save()
-        return last_number
+        return last_number  # Return the numeric ID for user_id
 
     def __str__(self):
         return f"{self.prefix}_{self.last_id} for {self.id_for} in {self.table_name}"
@@ -90,7 +91,6 @@ class User_header_all(models.Model):
             return
 
         with transaction.atomic():
-            # Lock rows for this user_id to prevent concurrent modifications
             max_line = User_header_all.objects.filter(user_id=self.user_id).select_for_update().aggregate(
                 models.Max('line_no')
             )['line_no__max']
