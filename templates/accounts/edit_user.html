@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Edit User - ID: {{ user.id }}{% endblock %}
+{% block content %}
+<h1>Edit User - ID: {{ user.id }}</h1>
+<form method="post">
+    {% csrf_token %}
+    <p><label for="name">Name:</label>
+    <input type="text" id="name" name="name" value="{{ user.name }}" required></p>
+    <p><label for="email">Email:</label>
+    <input type="email" id="email" name="email" value="{{ user.email|default_if_none:"" }}"></p>
+    <p><label for="username">Username:</label>
+    <input type="text" id="username" name="username" value="{{ user.username }}" required></p>
+    <p><label for="password">Password:</label>
+    <input type="password" id="password" name="password" value="{{ user.password }}" required></p>
+    <p><label for="designation">Designation:</label>
+    <input type="text" id="designation" name="designation" value="{{ user.designation }}" required></p>
+    <p><label for="mobile_no">Mobile No:</label>
+    <input type="text" id="mobile_no" name="mobile_no" value="{{ user.mobile_no|default_if_none:"" }}"></p>
+    <p><label for="profile">Profile:</label>
+    <select id="profile" name="profile">
+        <option value="">-- None --</option>
+        {% for profile in profiles %}
+            <option value="{{ profile.id }}" {% if user.profile.id == profile.id %}selected{% endif %}>
+                {{ profile.profile_name }} ({{ profile.profile_id }})
+            </option>
+        {% endfor %}
+    </select></p>
+    <button type="submit">Save Changes</button>
+</form>
+<p><a href="{% url 'accounts:all_users' %}">Back to All Users</a></p>
+{% endblock %}

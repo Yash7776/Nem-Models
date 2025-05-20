@@ -14,7 +14,7 @@
             <th>password</th>
             <th>mob</th>
             <th>profile_id</th>
-            <th>View Profile</th>
+            <th>Actions</th>
         </tr>
     </thead>
     <tbody>
@@ -28,9 +28,12 @@
             <td>{% if row.line_no == 0 %}{{ row.username }}{% else %}--{% endif %}</td>
             <td>{% if row.line_no == 0 %}{{ row.password }}{% else %}--{% endif %}</td>
             <td>{% if row.line_no == 0 %}{{ row.mobile_no|default:"--" }}{% else %}--{% endif %}</td>
-            <td>{{ row.profile.profile_name|default:"--" }}</td>
-            <td><a href="/user/{{row.username}}" class="btn btn-info">View</a></td>
-
+            <td>{{ row.profile.profile_id|default:"--" }}</td>
+            <td>
+                <a href="{% url 'accounts:edit_user' row.id %}">
+                    <button>Edit</button>
+                </a>
+            </td>
         </tr>
         {% endfor %}
     </tbody>
