@@ -66,30 +66,41 @@ def create_user(request):
         mobile_no = request.POST.get('mobile_no', '')
         profile_id = request.POST.get('profile')
 
+        # Check if a user with this username already exists
+        existing_user = User_header_all.objects.filter(username=username).first()
+        if existing_user:
+            messages.error(request, "User Already Exists")
+            return redirect('accounts:create_user')
+
         user_id = User_header_all.get_or_assign_user_id(username)
 
-        user = User_header_all.objects.create(
-            user_id=user_id,
-            line_no=0,
-            name=name,
-            email=email,
-            username=username,
-            password=password,
-            designation=designation,
-            mobile_no=mobile_no,
-            profile=None,
-            is_active=True
-        )
+        try:
+            user = User_header_all.objects.create(
+                user_id=user_id,
+                line_no=0,
+                name=name,
+                email=email,
+                username=username,
+                password=password,
+                designation=designation,
+                mobile_no=mobile_no,
+                profile=None,
+                is_active=True
+            )
 
-        if profile_id:
-            profile = get_object_or_404(Profile_header_all, profile_id=profile_id)
-            try:
-                user.assign_profile(profile)
-            except IntegrityError:
-                messages.error(request, "Failed to assign profile due to a database error. Please try again.")
-                return redirect('accounts:user_detail', username=username)
+            if profile_id:
+                profile = get_object_or_404(Profile_header_all, profile_id=profile_id)
+                try:
+                    user.assign_profile(profile)
+                except IntegrityError:
+                    messages.error(request, "Failed to assign profile due to a database error. Please try again.")
+                    return redirect('accounts:user_detail', username=username)
 
-        return redirect('accounts:user_detail', username=username)
+            return redirect('accounts:user_detail', username=username)
+
+        except IntegrityError:
+            messages.error(request, "User Already Exists")
+            return redirect('accounts:create_user')
 
     return render(request, 'accounts/create_user.html', {'profiles': profiles})
 
@@ -139,7 +150,6 @@ def edit_user(request, user_id):
 
 def deactivate_user(request, username):
     user = get_object_or_404(User_header_all, username=username, line_no=0)
-    # Deactivate all rows for this user
     User_header_all.objects.filter(user_id=user.user_id).update(is_active=False)
     messages.success(request, f"User {username} has been deactivated.")
     return redirect('accounts:user_detail', username=username)
