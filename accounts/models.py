@@ -40,15 +40,13 @@ class UniqueIdHeaderAll(models.Model):
 
 class User_header_all(models.Model):
     user_id = models.IntegerField()
-    line_no = models.IntegerField(default=1)  # Changed default to 1
+    line_no = models.IntegerField(default=0)  # Changed default back to 0
     name = models.CharField(max_length=150)
     email = models.CharField(max_length=150, blank=True)
     username = models.CharField(max_length=150)
     password = models.CharField(max_length=128)
     designation = models.CharField(max_length=100)
     mobile_no = models.CharField(max_length=15, blank=True)
-    created_on = models.DateTimeField(auto_now_add=True)
-    updated_on = models.DateTimeField(auto_now_add=True)
     profile = models.ForeignKey(
         Profile_header_all,
         on_delete=models.SET_NULL,
@@ -57,6 +55,8 @@ class User_header_all(models.Model):
         related_name='user_assignments'
     )
     is_active = models.BooleanField(default=True)
+    created_on = models.DateTimeField(auto_now_add=True)
+    updated_on = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ('user_id', 'line_no')
@@ -94,7 +94,7 @@ class User_header_all(models.Model):
                 models.Max('line_no')
             )['line_no__max']
             if max_line is None:
-                max_line = 0  # Adjusted for starting from 1
+                max_line = -1  # Adjusted for starting from 0
             next_line_no = max_line + 1
 
             User_header_all.objects.create(
@@ -123,10 +123,10 @@ class User_header_all(models.Model):
         return [assignment.profile for assignment in assignments]
 
     def reset_profile_line_no(self):
-        User_header_all.objects.filter(user_id=self.user_id).exclude(line_no=1).delete()
+        User_header_all.objects.filter(user_id=self.user_id).exclude(line_no=0).delete()
         default_assignment, _ = User_header_all.objects.get_or_create(
             user_id=self.user_id,
-            line_no=1,  # Changed to 1
+            line_no=0,  # Changed back to 0
             defaults={
                 'name': self.name,
                 'email': self.email,

@@ -1,69 +1,95 @@
 {% extends 'base.html' %}
 {% block title %}Edit User - ID: {{ user.id }}{% endblock %}
 {% block content %}
-<h1>Edit User - ID: {{ user.id }}</h1>
+<h1 class="mb-4">Edit User - ID: {{ user.id }}</h1>
 
 {% if messages %}
-    <ul class="messages">
+    <ul class="list-unstyled">
         {% for message in messages %}
-            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            <li class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </li>
         {% endfor %}
     </ul>
 {% endif %}
 
-<h2>User Details</h2>
-<form method="post" action="{% url 'accounts:edit_user' user.id %}">
+<h2 class="mb-3">User Details</h2>
+<form method="post" action="{% url 'accounts:edit_user' user.id %}" class="row g-3 mb-4">
     {% csrf_token %}
-    <p><label for="name">Name:</label>
-    <input type="text" id="name" name="name" value="{{ user.name }}" required></p>
-    <p><label for="email">Email:</label>
-    <input type="email" id="email" name="email" value="{{ user.email|default_if_none:"" }}"></p>
-    <p><label for="username">Username:</label>
-    <input type="text" id="username" name="username" value="{{ user.username }}" required></p>
-    <p><label for="password">Password:</label>
-    <input type="password" id="password" name="password" value="{{ user.password }}" required></p>
-    <p><label for="designation">Designation:</label>
-    <input type="text" id="designation" name="designation" value="{{ user.designation }}" required></p>
-    <p><label for="mobile_no">Mobile No:</label>
-    <input type="text" id="mobile_no" name="mobile_no" value="{{ user.mobile_no|default_if_none:"" }}"></p>
-    <p><label for="profile">Profile:</label>
-    <select id="profile" name="profile">
-        <option value="">-- None --</option>
-        {% for profile in profiles %}
-            <option value="{{ profile.id }}" {% if user.profile.id == profile.id %}selected{% endif %}>
-                {{ profile.profile_name }} ({{ profile.profile_id }})
-            </option>
-        {% endfor %}
-    </select></p>
-    <button type="submit">Save Changes</button>
+    <div class="col-md-6">
+        <label for="name" class="form-label">Name</label>
+        <input type="text" id="name" name="name" value="{{ user.name }}" class="form-control" required>
+    </div>
+    <div class="col-md-6">
+        <label for="email" class="form-label">Email</label>
+        <input type="email" id="email" name="email" value="{{ user.email|default_if_none:"" }}" class="form-control">
+    </div>
+    <div class="col-md-6">
+        <label for="username" class="form-label">Username</label>
+        <input type="text" id="username" name="username" value="{{ user.username }}" class="form-control" required>
+    </div>
+    <div class="col-md-6">
+        <label for="password" class="form-label">Password</label>
+        <input type="password" id="password" name="password" value="{{ user.password }}" class="form-control" required>
+    </div>
+    <div class="col-md-6">
+        <label for="designation" class="form-label">Designation</label>
+        <input type="text" id="designation" name="designation" value="{{ user.designation }}" class="form-control" required>
+    </div>
+    <div class="col-md-6">
+        <label for="mobile_no" class="form-label">Mobile No</label>
+        <input type="text" id="mobile_no" name="mobile_no" value="{{ user.mobile_no|default_if_none:"" }}" class="form-control">
+    </div>
+    <div class="col-md-6">
+        <label for="profile" class="form-label">Profile</label>
+        <select id="profile" name="profile" class="form-select">
+            <option value="">-- None --</option>
+            {% for profile in profiles %}
+                <option value="{{ profile.id }}" {% if user.profile.id == profile.id %}selected{% endif %}>
+                    {{ profile.profile_name }} ({{ profile.profile_id }})
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-12">
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+    </div>
 </form>
 
-<h2>Assigned Profiles</h2>
-<ul>
+<h2 class="mb-3">Assigned Profiles</h2>
+<ul class="list-group mb-4">
     {% for assignment in assignments %}
-        <li>
+        <li class="list-group-item d-flex justify-content-between align-items-center">
             Profile ID: {{ assignment.profile.profile_id|default:"--" }} (Line: {{ assignment.line_no }}, 
             Status: {{ assignment.is_active|yesno:"Active,Inactive" }})
             {% if assignment.profile %}
-            <a href="{% url 'accounts:toggle_profile_status' user.username assignment.line_no %}?is_active={% if assignment.is_active %}false{% else %}true{% endif %}&redirect_to=edit">
+            <a href="{% url 'accounts:toggle_profile_status' user.username assignment.line_no %}?is_active={% if assignment.is_active %}false{% else %}true{% endif %}&redirect_to=edit" 
+               class="btn btn-sm {% if assignment.is_active %}btn-warning{% else %}btn-success{% endif %}">
                 {% if assignment.is_active %}Deactivate{% else %}Activate{% endif %}
             </a>
             {% endif %}
         </li>
     {% empty %}
-        <li>No profiles assigned</li>
+        <li class="list-group-item">No profiles assigned</li>
     {% endfor %}
 </ul>
 
-<h2>Assign New Profile</h2>
-<form method="get" action="{% url 'accounts:assign_profile_from_edit' user.username %}">
-    <select name="profile_id">
-        {% for profile in profiles %}
-            <option value="{{ profile.profile_id }}">{{ profile.profile_name }} ({{ profile.profile_id }})</option>
-        {% endfor %}
-    </select>
-    <button type="submit">Assign</button>
+<h2 class="mb-3">Assign New Profile</h2>
+<form method="get" action="{% url 'accounts:assign_profile_from_edit' user.username %}" class="row g-3 mb-4">
+    <div class="col-md-4">
+        <select name="profile_id" class="form-select">
+            {% for profile in profiles %}
+                <option value="{{ profile.profile_id }}">{{ profile.profile_name }} ({{ profile.profile_id }})</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Assign</button>
+    </div>
 </form>
 
-<p><a href="{% url 'accounts:all_users' %}">Back to All Users</a></p>
+<p>
+    <a href="{% url 'accounts:all_users' %}" class="btn btn-secondary">Back to All Users</a>
+</p>
 {% endblock %}

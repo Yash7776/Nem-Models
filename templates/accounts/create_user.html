@@ -1,28 +1,44 @@
 {% extends 'base.html' %}
 {% block title %}Create New User{% endblock %}
 {% block content %}
-<h1>Create New User</h1>
-<form method="post">
+<h1 class="mb-4">Create New User</h1>
+<form method="post" class="row g-3">
     {% csrf_token %}
-    <p><label for="username">Username:</label>
-    <input type="text" id="username" name="username" required></p>
-    <p><label for="name">Name:</label>
-    <input type="text" id="name" name="name" required></p>
-    <p><label for="email">Email:</label>
-    <input type="email" id="email" name="email"></p>
-    <p><label for="password">Password:</label>
-    <input típus="password" id="password" name="password" required></p>
-    <p><label for="designation">Designation:</label>
-    <input type="text" id="designation" name="designation" required></p>
-    <p><label for="mobile_no">Mobile No:</label>
-    <input type="text" id="mobile_no" name="mobile_no"></p>
-    <p><label for="profile">Assign Profile:</label>
-    <select id="profile" name="profile">
-        <option value="">-- None --</option>
-        {% for profile in profiles %}
-            <option value="{{ profile.profile_id }}">{{ profile.profile_name }} ({{ profile.profile_id }})</option>
-        {% endfor %}
-    </select></p>
-    <button type="submit">Create User</button>
+    <div class="col-md-6">
+        <label for="username" class="form-label">Username</label>
+        <input type="text" id="username" name="username" class="form-control" required>
+    </div>
+    <div class="col-md-6">
+        <label for="name" class="form-label">Name</label>
+        <input type="text" id="name" name="name" class="form-control" required>
+    </div>
+    <div class="col-md-6">
+        <label for="email" class="form-label">Email</label>
+        <input type="email" id="email" name="email" class="form-control">
+    </div>
+    <div class="col-md-6">
+        <label for="password" class="form-label">Password</label>
+        <input type="password" id="password" name="password" class="form-control" required>
+    </div>
+    <div class="col-md-6">
+        <label for="designation" class="form-label">Designation</label>
+        <input type="text" id="designation" name="designation" class="form-control" required>
+    </div>
+    <div class="col-md-6">
+        <label for="mobile_no" class="form-label">Mobile No</label>
+        <input type="text" id="mobile_no" name="mobile_no" class="form-control">
+    </div>
+    <div class="col-md-6">
+        <label for="profile" class="form-label">Assign Profile</label>
+        <select id="profile" name="profile" class="form-select">
+            <option value="">-- None --</option>
+            {% for profile in profiles %}
+                <option value="{{ profile.profile_id }}">{{ profile.profile_name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-12">
+        <button type="submit" class="btn btn-primary">Create User</button>
+    </div>
 </form>
 {% endblock %}
