@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'accounts/base.html' %}
 {% block title %}Create New User{% endblock %}
 {% block content %}
 <h1 class="mb-4">Create New User</h1>
@@ -33,7 +33,7 @@
         <select id="profile" name="profile" class="form-select">
             <option value="">-- None --</option>
             {% for profile in profiles %}
-                <option value="{{ profile.profile_id }}">{{ profile.profile_name }}</option>
+                <option value="{{ profile.profile_id }}">{{ profile.profile_name }} ({{ profile.profile_id }})</option>
             {% endfor %}
         </select>
     </div>

@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'accounts/base.html' %}
 {% block title %}All Users{% endblock %}
 {% block content %}
 <h1 class="mb-4">All Users and Profile Assignments</h1>
@@ -7,7 +7,7 @@
         <thead class="table-dark">
             <tr>
                 <th scope="col">ID</th>
-                <th scope="col">Unique ID</th>
+                <th scope="col">User ID</th>
                 <th scope="col">Line No</th>
                 <th scope="col">Name</th>
                 <th scope="col">Email</th>
@@ -15,7 +15,6 @@
                 <th scope="col">Password</th>
                 <th scope="col">Mobile</th>
                 <th scope="col">Profile ID</th>
-                <th scope="col">Profile Name</th>
                 <th scope="col">Actions</th>
             </tr>
         </thead>
@@ -31,7 +30,6 @@
                 <td>{{ row.password }}</td>
                 <td>{{ row.mobile_no|default:"--" }}</td>
                 <td>{{ row.profile.profile_id|default:"--" }}</td>
-                <td>{{ row.profile.profile_name|default:"--" }}</td>
                 <td>
                     <a href="{% url 'accounts:edit_user' row.id %}" class="btn btn-sm btn-primary">Edit</a>
                 </td>

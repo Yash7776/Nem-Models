@@ -4,7 +4,7 @@ from django.db import IntegrityError
 from .models import User_header_all, Profile_header_all
 
 def user_detail(request, username):
-    user = get_object_or_404(User_header_all, username=username, line_no=0)  # Changed back to line_no=0
+    user = get_object_or_404(User_header_all, username=username, line_no=0)
     assignments = User_header_all.objects.filter(user_id=user.user_id).order_by('line_no')
     profiles = Profile_header_all.objects.all()
     return render(request, 'accounts/user_detail.html', {
@@ -15,7 +15,7 @@ def user_detail(request, username):
     })
 
 def assign_profile(request, username):
-    user = get_object_or_404(User_header_all, username=username, line_no=0)  # Changed back to line_no=0
+    user = get_object_or_404(User_header_all, username=username, line_no=0)
     profile_id = request.GET.get('profile_id')
     if not profile_id:
         messages.error(request, "Please select a profile to assign.")
@@ -29,7 +29,7 @@ def assign_profile(request, username):
     return redirect('accounts:user_detail', username=username)
 
 def assign_profile_from_edit(request, username):
-    user = get_object_or_404(User_header_all, username=username, line_no=0)  # Changed back to line_no=0
+    user = get_object_or_404(User_header_all, username=username, line_no=0)
     profile_id = request.GET.get('profile_id')
     if not profile_id:
         messages.error(request, "Please select a profile to assign.")
@@ -43,7 +43,7 @@ def assign_profile_from_edit(request, username):
     return redirect('accounts:edit_user', user_id=user.id)
 
 def toggle_profile_status(request, username, line_no):
-    user = get_object_or_404(User_header_all, username=username, line_no=0)  # Changed back to line_no=0
+    user = get_object_or_404(User_header_all, username=username, line_no=0)
     is_active = request.GET.get('is_active', 'true').lower() == 'true'
     redirect_to = request.GET.get('redirect_to', 'detail')
     user.set_profile_active(line_no, is_active)
@@ -68,22 +68,26 @@ def create_user(request):
 
         user_id = User_header_all.get_or_assign_user_id(username)
 
-        profile = None
-        if profile_id:
-            profile = get_object_or_404(Profile_header_all, profile_id=profile_id)
-
         user = User_header_all.objects.create(
             user_id=user_id,
-            line_no=0,  # Starts at 0
+            line_no=0,
             name=name,
             email=email,
             username=username,
             password=password,
             designation=designation,
             mobile_no=mobile_no,
-            profile=profile,
+            profile=None,
             is_active=True
         )
+
+        if profile_id:
+            profile = get_object_or_404(Profile_header_all, profile_id=profile_id)
+            try:
+                user.assign_profile(profile)
+            except IntegrityError:
+                messages.error(request, "Failed to assign profile due to a database error. Please try again.")
+                return redirect('accounts:user_detail', username=username)
 
         return redirect('accounts:user_detail', username=username)
 
@@ -132,3 +136,10 @@ def edit_user(request, user_id):
         'profiles': profiles,
         'assignments': assignments,
     })
+
+def deactivate_user(request, username):
+    user = get_object_or_404(User_header_all, username=username, line_no=0)
+    # Deactivate all rows for this user
+    User_header_all.objects.filter(user_id=user.user_id).update(is_active=False)
+    messages.success(request, f"User {username} has been deactivated.")
+    return redirect('accounts:user_detail', username=username)

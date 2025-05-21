@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'accounts/base.html' %}
 {% block title %}{{ user.username }}'s Profile{% endblock %}
 {% block content %}
 <h1 class="mb-4">{{ user.name }} ({{ user.username }})</h1>
@@ -20,6 +20,10 @@
         {% endfor %}
     </ul>
 {% endif %}
+
+<div class="mb-4">
+    <a href="{% url 'accounts:deactivate_user' user.username %}" class="btn btn-danger">Deactivate User</a>
+</div>
 
 <h2 class="mb-3">Assigned Profiles</h2>
 <ul class="list-group mb-4">
