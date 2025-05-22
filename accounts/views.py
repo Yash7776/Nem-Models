@@ -203,3 +203,21 @@ def toggle_user_status(request, username):
         User_header_all.objects.filter(user_id=user.user_id).update(is_active=False)
         messages.success(request, f"User {username} has been deactivated.")
     return redirect('accounts:user_detail', username=username)
+
+def users_summary(request):
+    # Get only the base records (line_no=0) for each user
+    users = User_header_all.objects.filter(line_no=0).order_by('user_id')
+    
+    # Prepare a list of users with their activated and deactivated profiles
+    user_data = []
+    for user in users:
+        assignments = User_header_all.objects.filter(user_id=user.user_id, profile__isnull=False)
+        activated_profiles = [assignment.profile.profile_id for assignment in assignments if assignment.is_active]
+        deactivated_profiles = [assignment.profile.profile_id for assignment in assignments if not assignment.is_active]
+        user_data.append({
+            'user': user,
+            'activated_profiles': activated_profiles,
+            'deactivated_profiles': deactivated_profiles,
+        })
+    
+    return render(request, 'accounts/users_summary.html', {'user_data': user_data})

@@ -13,4 +13,5 @@ urlpatterns = [
     path('create-user/', views.create_user, name='create_user'),
     path('edit-user/<int:user_id>/', views.edit_user, name='edit_user'),
     path('toggle-user-status/<str:username>/', views.toggle_user_status, name='toggle_user_status'),
+    path('users-summary/', views.users_summary, name='users_summary'),
 ]
