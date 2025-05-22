@@ -22,7 +22,11 @@
 {% endif %}
 
 <div class="mb-4">
-    <a href="{% url 'accounts:deactivate_user' user.username %}" class="btn btn-danger">Deactivate User</a>
+    {% if user.is_active %}
+        <a href="{% url 'accounts:toggle_user_status' user.username %}?activate=false" class="btn btn-danger">Master Deactivate User</a>
+    {% else %}
+        <a href="{% url 'accounts:toggle_user_status' user.username %}?activate=true" class="btn btn-success">Master Activate User</a>
+    {% endif %}
 </div>
 
 <h2 class="mb-3">Assigned Profiles</h2>

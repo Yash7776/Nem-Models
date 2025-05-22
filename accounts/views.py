@@ -1,6 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.db import IntegrityError
+from django.core.exceptions import ValidationError
 from .models import User_header_all, Profile_header_all
 
 def user_detail(request, username):
@@ -24,7 +25,9 @@ def assign_profile(request, username):
     try:
         user.assign_profile(profile)
         messages.success(request, f"Profile {profile_id} assigned successfully.")
-    except IntegrityError:
+    except ValidationError as e:
+        messages.error(request, f"Failed to assign profile: {str(e)}")
+    except IntegrityError as e:
         messages.error(request, "Failed to assign profile due to a database error. Please try again.")
     return redirect('accounts:user_detail', username=username)
 
@@ -38,7 +41,9 @@ def assign_profile_from_edit(request, username):
     try:
         user.assign_profile(profile)
         messages.success(request, f"Profile {profile_id} assigned successfully.")
-    except IntegrityError:
+    except ValidationError as e:
+        messages.error(request, f"Failed to assign profile: {str(e)}")
+    except IntegrityError as e:
         messages.error(request, "Failed to assign profile due to a database error. Please try again.")
     return redirect('accounts:edit_user', user_id=user.id)
 
@@ -72,10 +77,17 @@ def create_user(request):
             messages.error(request, "User Already Exists")
             return redirect('accounts:create_user')
 
+        # Check if the mobile number is already used by another user_id
+        if mobile_no:
+            existing_mobile = User_header_all.objects.filter(mobile_no=mobile_no).first()
+            if existing_mobile:
+                messages.error(request, f"Mobile number '{mobile_no}' is already taken by another user.")
+                return redirect('accounts:create_user')
+
         user_id = User_header_all.get_or_assign_user_id(username)
 
         try:
-            user = User_header_all.objects.create(
+            user = User_header_all(
                 user_id=user_id,
                 line_no=0,
                 name=name,
@@ -87,6 +99,8 @@ def create_user(request):
                 profile=None,
                 is_active=True
             )
+            user.full_clean()  # Run model validation
+            user.save()
 
             if profile_id:
                 profile = get_object_or_404(Profile_header_all, profile_id=profile_id)
@@ -98,6 +112,11 @@ def create_user(request):
 
             return redirect('accounts:user_detail', username=username)
 
+        except ValidationError as e:
+            for field, errors in e.message_dict.items():
+                for error in errors:
+                    messages.error(request, f"{field.capitalize()}: {error}")
+            return redirect('accounts:create_user')
         except IntegrityError:
             messages.error(request, "User Already Exists")
             return redirect('accounts:create_user')
@@ -117,30 +136,56 @@ def edit_user(request, user_id):
         designation = request.POST.get('designation')
         mobile_no = request.POST.get('mobile_no', '')
         profile_id = request.POST.get('profile')
-        
-        user.name = name
-        user.email = email
-        user.password = password
-        user.designation = designation
-        user.mobile_no = mobile_no
-        user.profile = Profile_header_all.objects.get(id=profile_id) if profile_id else None
 
-        if user.username != username:
-            existing_user = User_header_all.objects.filter(username=username).exclude(user_id=user.user_id).first()
-            if existing_user:
-                messages.error(request, f"Username '{username}' is already taken by another user.")
-                return render(request, 'accounts/edit_user.html', {
-                    'user': user,
-                    'profiles': profiles,
-                    'assignments': assignments,
-                })
+        try:
+            # Check if the mobile number is already used by another user_id
+            if mobile_no and mobile_no != user.mobile_no:
+                existing_mobile = User_header_all.objects.filter(mobile_no=mobile_no).exclude(user_id=user.user_id).first()
+                if existing_mobile:
+                    messages.error(request, f"Mobile number '{mobile_no}' is already taken by another user.")
+                    return render(request, 'accounts/edit_user.html', {
+                        'user': user,
+                        'profiles': profiles,
+                        'assignments': assignments,
+                    })
 
-            User_header_all.objects.filter(user_id=user.user_id).update(username=username)
-            user.username = username
+            user.name = name
+            user.email = email
+            user.designation = designation
+            user.mobile_no = mobile_no
+            user.profile = Profile_header_all.objects.get(id=profile_id) if profile_id else None
 
-        user.save()
-        messages.success(request, "User details updated successfully.")
-        return redirect('accounts:all_users')
+            if user.username != username:
+                existing_user = User_header_all.objects.filter(username=username).exclude(user_id=user.user_id).first()
+                if existing_user:
+                    messages.error(request, f"Username '{username}' is already taken by another user.")
+                    return render(request, 'accounts/edit_user.html', {
+                        'user': user,
+                        'profiles': profiles,
+                        'assignments': assignments,
+                    })
+
+                User_header_all.objects.filter(user_id=user.user_id).update(username=username)
+                user.username = username
+
+            # Update password only if a new one is provided
+            if password:
+                user.password = password
+
+            user.full_clean()
+            user.save()
+            messages.success(request, "User details updated successfully.")
+            return redirect('accounts:all_users')
+
+        except ValidationError as e:
+            for field, errors in e.message_dict.items():
+                for error in errors:
+                    messages.error(request, f"{field.capitalize()}: {error}")
+            return render(request, 'accounts/edit_user.html', {
+                'user': user,
+                'profiles': profiles,
+                'assignments': assignments,
+            })
 
     return render(request, 'accounts/edit_user.html', {
         'user': user,
@@ -148,8 +193,13 @@ def edit_user(request, user_id):
         'assignments': assignments,
     })
 
-def deactivate_user(request, username):
+def toggle_user_status(request, username):
     user = get_object_or_404(User_header_all, username=username, line_no=0)
-    User_header_all.objects.filter(user_id=user.user_id).update(is_active=False)
-    messages.success(request, f"User {username} has been deactivated.")
+    activate = request.GET.get('activate', 'false').lower() == 'true'
+    if activate:
+        User_header_all.objects.filter(user_id=user.user_id).update(is_active=True)
+        messages.success(request, f"User {username} has been activated.")
+    else:
+        User_header_all.objects.filter(user_id=user.user_id).update(is_active=False)
+        messages.success(request, f"User {username} has been deactivated.")
     return redirect('accounts:user_detail', username=username)
