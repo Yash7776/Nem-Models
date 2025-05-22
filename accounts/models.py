@@ -1,6 +1,7 @@
 from django.db import models, transaction
 from django.utils import timezone
-
+from django.core.validators import RegexValidator
+from django.contrib.auth.hashers import make_password, check_password
 class Profile_header_all(models.Model):
     profile_id = models.CharField(max_length=20, unique=True)
     profile_name = models.CharField(max_length=100)
@@ -39,14 +40,19 @@ class UniqueIdHeaderAll(models.Model):
         return f"{self.prefix}_{self.last_id} for {self.id_for} in {self.table_name}"
 
 class User_header_all(models.Model):
+    mobile_validator = RegexValidator(
+        regex=r'^[6-9]\d{9}$',
+        message='Mobile number must be 10 digits and start with 6, 7, 8, or 9.'
+    )
+
     user_id = models.IntegerField()
-    line_no = models.IntegerField(default=0)  # Changed default back to 0
+    line_no = models.IntegerField(default=0)
     name = models.CharField(max_length=150)
     email = models.CharField(max_length=150, blank=True)
     username = models.CharField(max_length=150)
     password = models.CharField(max_length=128)
     designation = models.CharField(max_length=100)
-    mobile_no = models.CharField(max_length=15, blank=True)
+    mobile_no = models.CharField(max_length=10, blank=True, validators=[mobile_validator])
     profile = models.ForeignKey(
         Profile_header_all,
         on_delete=models.SET_NULL,
@@ -61,8 +67,14 @@ class User_header_all(models.Model):
     class Meta:
         unique_together = ('user_id', 'line_no')
 
-    def __str__(self):
+    def _str_(self):
         return f"{self.username} (Line {self.line_no})"
+
+    def save(self, *args, **kwargs):
+        # Hash the password if it hasn't been hashed already
+        if self.password and not self.password.startswith('pbkdf2_'):
+            self.password = make_password(self.password)
+        super().save(*args, **kwargs)
 
     @classmethod
     def get_or_assign_user_id(cls, username):
@@ -74,7 +86,6 @@ class User_header_all(models.Model):
             table_name='user_header_all',
             id_for='user',
             defaults={
-                'prefix': 'USR',
                 'last_id': '',
                 'created_on': timezone.now(),
                 'modified_on': timezone.now()
@@ -94,7 +105,7 @@ class User_header_all(models.Model):
                 models.Max('line_no')
             )['line_no__max']
             if max_line is None:
-                max_line = -1  # Adjusted for starting from 0
+                max_line = -1
             next_line_no = max_line + 1
 
             User_header_all.objects.create(
@@ -103,7 +114,7 @@ class User_header_all(models.Model):
                 name=self.name,
                 email=self.email,
                 username=self.username,
-                password=self.password,
+                password=self.password,  # Password is already hashed
                 designation=self.designation,
                 mobile_no=self.mobile_no,
                 profile=profile,
@@ -126,12 +137,12 @@ class User_header_all(models.Model):
         User_header_all.objects.filter(user_id=self.user_id).exclude(line_no=0).delete()
         default_assignment, _ = User_header_all.objects.get_or_create(
             user_id=self.user_id,
-            line_no=0,  # Changed back to 0
+            line_no=0,
             defaults={
                 'name': self.name,
                 'email': self.email,
                 'username': self.username,
-                'password': self.password,
+                'password': self.password,  # Password is already hashed
                 'designation': self.designation,
                 'mobile_no': self.mobile_no,
                 'profile': None,
