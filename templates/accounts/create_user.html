@@ -14,7 +14,7 @@
     </ul>
 {% endif %}
 
-<form method="post" class="row g-3">
+<form method="post" class="row g-3" id="create-user-form" onsubmit="return validateForm()">
     {% csrf_token %}
     <div class="col-md-6">
         <label for="username" class="form-label">Username</label>
@@ -38,7 +38,10 @@
     </div>
     <div class="col-md-6">
         <label for="mobile_no" class="form-label">Mobile No</label>
-        <input type="text" id="mobile_no" name="mobile_no" class="form-control">
+        <input type="text" id="mobile_no" name="mobile_no" class="form-control"
+               pattern="[6-9][0-9]{9}" title="Mobile number must be exactly 10 digits starting with 6, 7, 8, or 9"
+               placeholder="e.g., 9876543210" oninput="validateMobileNo(this)">
+        <div id="mobile_no_error" class="invalid-feedback"></div>
     </div>
     <div class="col-md-6">
         <label for="profile" class="form-label">Assign Profile</label>
@@ -53,4 +56,40 @@
         <button type="submit" class="btn btn-primary">Create User</button>
     </div>
 </form>
+
+<script>
+function validateMobileNo(input) {
+    const errorDiv = document.getElementById('mobile_no_error');
+    const value = input.value;
+    const digits = value.replace(/\D/g, ''); // Extract digits only
+
+    if (value) {
+        if (digits.length !== 10) {
+            input.classList.add('is-invalid');
+            errorDiv.textContent = 'Mobile number must be exactly 10 digits long.';
+        } else if (!/^[6-9]/.test(digits)) {
+            input.classList.add('is-invalid');
+            errorDiv.textContent = 'Mobile number must start with 6, 7, 8, or 9.';
+        } else {
+            input.classList.remove('is-invalid');
+            errorDiv.textContent = '';
+        }
+    } else {
+        input.classList.remove('is-invalid');
+        errorDiv.textContent = '';
+    }
+}
+
+function validateForm() {
+    const mobileInput = document.getElementById('mobile_no');
+    validateMobileNo(mobileInput); // Validate before form submission
+
+    // Prevent form submission if mobile number is invalid
+    if (mobileInput.classList.contains('is-invalid')) {
+        return false;
+    }
+
+    return true;
+}
+</script>
 {% endblock %}

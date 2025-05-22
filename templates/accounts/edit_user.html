@@ -15,7 +15,7 @@
 {% endif %}
 
 <h2 class="mb-3">User Details</h2>
-<form method="post" action="{% url 'accounts:edit_user' user.id %}" class="row g-3 mb-4">
+<form method="post" action="{% url 'accounts:edit_user' user.id %}" class="row g-3 mb-4" id="edit-user-form" onsubmit="return validateForm()">
     {% csrf_token %}
     <div class="col-md-6">
         <label for="name" class="form-label">Name</label>
@@ -30,8 +30,9 @@
         <input type="text" id="username" name="username" value="{{ user.username }}" class="form-control" required>
     </div>
     <div class="col-md-6">
-        <label for="password" class="form-label">Password</label>
-        <input type="password" id="password" name="password" value="{{ user.password }}" class="form-control" required>
+        <label for="password" class="form-label">New Password (leave blank to keep current)</label>
+        <input type="password" id="password" name="password" class="form-control" placeholder="Enter new password">
+        <small class="form-text text-muted">Leave blank to keep the current password.</small>
     </div>
     <div class="col-md-6">
         <label for="designation" class="form-label">Designation</label>
@@ -39,7 +40,10 @@
     </div>
     <div class="col-md-6">
         <label for="mobile_no" class="form-label">Mobile No</label>
-        <input type="text" id="mobile_no" name="mobile_no" value="{{ user.mobile_no|default_if_none:"" }}" class="form-control">
+        <input type="text" id="mobile_no" name="mobile_no" value="{{ user.mobile_no|default_if_none:"" }}"
+               class="form-control" pattern="[6-9][0-9]{9}" title="Mobile number must be exactly 10 digits starting with 6, 7, 8, or 9"
+               placeholder="e.g., 9876543210" oninput="validateMobileNo(this)">
+        <div id="mobile_no_error" class="invalid-feedback"></div>
     </div>
     <div class="col-md-6">
         <label for="profile" class="form-label">Profile</label>
@@ -92,4 +96,39 @@
 <p>
     <a href="{% url 'accounts:all_users' %}" class="btn btn-secondary">Back to All Users</a>
 </p>
+
+<script>
+function validateMobileNo(input) {
+    const errorDiv = document.getElementById('mobile_no_error');
+    const value = input.value;
+    const digits = value.replace(/\D/g, ''); // Extract digits only
+
+    if (value) {
+        if (digits.length !== 10) {
+            input.classList.add('is-invalid');
+            errorDiv.textContent = 'Mobile number must be exactly 10 digits long.';
+        } else if (!/^[6-9]/.test(digits)) {
+            input.classList.add('is-invalid');
+            errorDiv.textContent = 'Mobile number must start with 6, 7, 8, or 9.';
+        } else {
+            input.classList.remove('is-invalid');
+            errorDiv.textContent = '';
+        }
+    } else {
+        input.classList.remove('is-invalid');
+        errorDiv.textContent = '';
+    }
+}
+
+function validateForm() {
+    const mobileInput = document.getElementById('mobile_no');
+    validateMobileNo(mobileInput); // Validate before submission
+
+    if (mobileInput.classList.contains('is-invalid')) {
+        return false;
+    }
+
+    return true;
+}
+</script>
 {% endblock %}
