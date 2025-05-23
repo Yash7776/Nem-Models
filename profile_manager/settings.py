@@ -52,10 +52,15 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 
 WSGI_APPLICATION = 'profile_manager.wsgi.application'
 
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'ProfileTest',
+        'USER': 'postgres',
+        'HOST': 'localhost',
+        'PASSWORD' : 'admin123',
+        'PORT' : 5432
     }
 }
 

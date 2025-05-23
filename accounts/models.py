@@ -2,11 +2,12 @@ from django.db import models, transaction
 from django.utils import timezone
 from django.core.validators import RegexValidator
 from django.contrib.auth.hashers import make_password, check_password
+from django.contrib.postgres.fields import ArrayField
 class Profile_header_all(models.Model):
     profile_id = models.CharField(max_length=20, unique=True)
     profile_name = models.CharField(max_length=100)
-    pro_form_ids = models.JSONField(default=list, blank=True)
-    pro_process_ids = models.JSONField(default=list, blank=True)
+    pro_form_ids = ArrayField(models.CharField(), default=list, blank=True, help_text="List of accessible Form IDs like ['F_MAN_001', 'F_MAIN_002']")
+    pro_process_ids = ArrayField(models.CharField(), default=list, blank=True, help_text="List of accessible Process IDs like ['P_MAN_0001', 'P_DOC_0002']")
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
