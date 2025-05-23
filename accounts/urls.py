@@ -2,8 +2,6 @@
 from django.urls import path
 from . import views
 
-app_name = 'accounts'
-
 urlpatterns = [
     path('user/<str:username>/', views.user_detail, name='user_detail'),
     path('assign-profile/<str:username>/', views.assign_profile, name='assign_profile'),

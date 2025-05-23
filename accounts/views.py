@@ -20,7 +20,7 @@ def assign_profile(request, username):
     profile_id = request.GET.get('profile_id')
     if not profile_id:
         messages.error(request, "Please select a profile to assign.")
-        return redirect('accounts:user_detail', username=username)
+        return redirect('user_detail', username=username)
     profile = get_object_or_404(Profile_header_all, profile_id=profile_id)
     try:
         user.assign_profile(profile)
@@ -29,14 +29,14 @@ def assign_profile(request, username):
         messages.error(request, f"Failed to assign profile: {str(e)}")
     except IntegrityError as e:
         messages.error(request, "Failed to assign profile due to a database error. Please try again.")
-    return redirect('accounts:user_detail', username=username)
+    return redirect('user_detail', username=username)
 
 def assign_profile_from_edit(request, username):
     user = get_object_or_404(User_header_all, username=username, line_no=0)
     profile_id = request.GET.get('profile_id')
     if not profile_id:
         messages.error(request, "Please select a profile to assign.")
-        return redirect('accounts:edit_user', user_id=user.id)
+        return redirect('edit_user', user_id=user.id)
     profile = get_object_or_404(Profile_header_all, profile_id=profile_id)
     try:
         user.assign_profile(profile)
@@ -45,7 +45,7 @@ def assign_profile_from_edit(request, username):
         messages.error(request, f"Failed to assign profile: {str(e)}")
     except IntegrityError as e:
         messages.error(request, "Failed to assign profile due to a database error. Please try again.")
-    return redirect('accounts:edit_user', user_id=user.id)
+    return redirect('edit_user', user_id=user.id)
 
 def toggle_profile_status(request, username, line_no):
     user = get_object_or_404(User_header_all, username=username, line_no=0)
@@ -53,8 +53,8 @@ def toggle_profile_status(request, username, line_no):
     redirect_to = request.GET.get('redirect_to', 'detail')
     user.set_profile_active(line_no, is_active)
     if redirect_to == 'edit':
-        return redirect('accounts:edit_user', user_id=user.id)
-    return redirect('accounts:user_detail', username=username)
+        return redirect('edit_user', user_id=user.id)
+    return redirect('user_detail', username=username)
 
 def all_users(request):
     rows = User_header_all.objects.all().order_by('id')
@@ -75,14 +75,14 @@ def create_user(request):
         existing_user = User_header_all.objects.filter(username=username).first()
         if existing_user:
             messages.error(request, "User Already Exists")
-            return redirect('accounts:create_user')
+            return redirect('create_user')
 
         # Check if the mobile number is already used by another user_id
         if mobile_no:
             existing_mobile = User_header_all.objects.filter(mobile_no=mobile_no).first()
             if existing_mobile:
                 messages.error(request, f"Mobile number '{mobile_no}' is already taken by another user.")
-                return redirect('accounts:create_user')
+                return redirect('create_user')
 
         user_id = User_header_all.get_or_assign_user_id(username)
 
@@ -108,18 +108,18 @@ def create_user(request):
                     user.assign_profile(profile)
                 except IntegrityError:
                     messages.error(request, "Failed to assign profile due to a database error. Please try again.")
-                    return redirect('accounts:user_detail', username=username)
+                    return redirect('user_detail', username=username)
 
-            return redirect('accounts:user_detail', username=username)
+            return redirect('user_detail', username=username)
 
         except ValidationError as e:
             for field, errors in e.message_dict.items():
                 for error in errors:
                     messages.error(request, f"{field.capitalize()}: {error}")
-            return redirect('accounts:create_user')
+            return redirect('create_user')
         except IntegrityError:
             messages.error(request, "User Already Exists")
-            return redirect('accounts:create_user')
+            return redirect('create_user')
 
     return render(request, 'accounts/create_user.html', {'profiles': profiles})
 
@@ -175,7 +175,7 @@ def edit_user(request, user_id):
             user.full_clean()
             user.save()
             messages.success(request, "User details updated successfully.")
-            return redirect('accounts:all_users')
+            return redirect('all_users')
 
         except ValidationError as e:
             for field, errors in e.message_dict.items():
@@ -202,7 +202,7 @@ def toggle_user_status(request, username):
     else:
         User_header_all.objects.filter(user_id=user.user_id).update(is_active=False)
         messages.success(request, f"User {username} has been deactivated.")
-    return redirect('accounts:user_detail', username=username)
+    return redirect('user_detail', username=username)
 
 def users_summary(request):
     # Get only the base records (line_no=0) for each user
