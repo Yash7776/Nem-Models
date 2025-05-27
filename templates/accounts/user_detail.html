@@ -33,7 +33,7 @@
 <ul class="list-group mb-4">
     {% for assignment in assignments %}
         <li class="list-group-item d-flex justify-content-between align-items-center">
-            Profile ID: {{ assignment.profile.profile_id|default:"--" }} (Line: {{ assignment.line_no }}, 
+            Profile ID: {{ assignment.profile.profile_id|default:"--" }},{{ assignment.profile.profile_name|default:"--" }} (Line: {{ assignment.line_no }}, 
             Status: {{ assignment.is_active|yesno:"Active,Inactive" }})
             {% if assignment.profile %}
             <a href="{% url 'toggle_profile_status' user.username assignment.line_no %}?is_active={% if assignment.is_active %}false{% else %}true{% endif %}" 

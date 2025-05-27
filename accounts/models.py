@@ -10,7 +10,7 @@ class Profile_header_all(models.Model):
     profile_name = models.CharField(max_length=100)
     pro_form_ids = ArrayField(models.CharField(), default=list, blank=True, help_text="List of accessible Form IDs like ['F_MAN_001', 'F_MAIN_002']")
     pro_process_ids = ArrayField(models.CharField(), default=list, blank=True, help_text="List of accessible Process IDs like ['P_MAN_0001', 'P_DOC_0002']")
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True) #profile_status
 
     def __str__(self):
         return f"{self.profile_id} - {self.profile_name}"
