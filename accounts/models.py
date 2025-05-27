@@ -3,6 +3,8 @@ from django.utils import timezone
 from django.core.validators import RegexValidator
 from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.postgres.fields import ArrayField
+import string
+
 class Profile_header_all(models.Model):
     profile_id = models.CharField(max_length=20, unique=True)
     profile_name = models.CharField(max_length=100)
@@ -27,15 +29,46 @@ class UniqueIdHeaderAll(models.Model):
         self.modified_on = timezone.now()
         super().save(*args, **kwargs)
 
+    def increment_alphanumeric(self, s):
+        """
+        Increment a 5-character alphanumeric string (00001 to ZZZZZ).
+        """
+        chars = string.digits + string.ascii_uppercase  # 0-9, then A-Z
+        base = len(chars)  # 36 (10 digits + 26 letters)
+        s = s.rjust(5, '0')  # Ensure length is 5, pad with leading zeros
+
+        # Convert to number
+        num = 0
+        for c in s:
+            num = num * base + chars.index(c)
+
+        # Increment
+        num += 1
+        if num > base ** 5:  # If we exceed ZZZZZ
+            raise ValueError("ID limit exceeded (ZZZZZ reached)")
+
+        # Convert back to string
+        new_s = ''
+        for _ in range(5):
+            new_s = chars[num % base] + new_s
+            num //= base
+
+        return new_s.rjust(5, '0'), num  # Return the new ID and its numeric position
+
     def get_next_id(self):
         if not self.last_id:
-            last_number = 1
-            self.last_id = "1"
+            self.last_id = f"{self.prefix}-00001"  # Start from "prefix-00001"
+            sequence_number = 1
         else:
-            last_number = int(self.last_id) + 1
-            self.last_id = str(last_number)
+            # Extract the alphanumeric part from last_id (e.g., "00001" from "UHA-00001")
+            current_id = self.last_id.split('-')[-1]
+            # Increment the alphanumeric part
+            next_id, sequence_number = self.increment_alphanumeric(current_id)
+            # Store last_id with the prefix
+            self.last_id = f"{self.prefix}-{next_id}"
+
         self.save()
-        return last_number
+        return self.last_id, sequence_number  # Return the formatted ID and sequence number
 
     def __str__(self):
         return f"{self.prefix}_{self.last_id} for {self.id_for} in {self.table_name}"
@@ -92,7 +125,8 @@ class User_header_all(models.Model):
                 'modified_on': timezone.now()
             }
         )
-        return unique_id.get_next_id()
+        _, sequence_number = unique_id.get_next_id()  # Get the sequence number
+        return sequence_number
 
     def assign_profile(self, profile):
         if not isinstance(profile, Profile_header_all):
@@ -154,3 +188,5 @@ class User_header_all(models.Model):
             default_assignment.profile = None
             default_assignment.is_active = True
             default_assignment.save()
+
+
