@@ -3,7 +3,7 @@ from .models import Profile_header_all, User_header_all, UniqueIdHeaderAll
 
 @admin.register(Profile_header_all)
 class ProfileHeaderAdmin(admin.ModelAdmin):
-    list_display = ('profile_id', 'profile_name', 'is_active')
+    list_display = ('profile_id', 'profile_name', 'p_status', 'p_inserted_on', 'p_deactivated_on')
     ordering = ('profile_id',)  # ascending order by profile_id
 
 @admin.register(User_header_all)

@@ -6,11 +6,36 @@ from django.contrib.postgres.fields import ArrayField
 import string
 
 class Profile_header_all(models.Model):
+    # Choices for p_status
+    STATUS_INACTIVE = 0
+    STATUS_ACTIVE = 1
+    STATUS_CHOICES = [
+        (STATUS_INACTIVE, 'Inactive'),
+        (STATUS_ACTIVE, 'Active'),
+    ]
+
     profile_id = models.CharField(max_length=20, unique=True)
     profile_name = models.CharField(max_length=100)
     pro_form_ids = ArrayField(models.CharField(), default=list, blank=True, help_text="List of accessible Form IDs like ['F_MAN_001', 'F_MAIN_002']")
     pro_process_ids = ArrayField(models.CharField(), default=list, blank=True, help_text="List of accessible Process IDs like ['P_MAN_0001', 'P_DOC_0002']")
-    is_active = models.BooleanField(default=True) #profile_status
+    p_status = models.SmallIntegerField(choices=STATUS_CHOICES, default=STATUS_ACTIVE)  # Renamed from is_active
+    p_inserted_on = models.DateTimeField(null=True, blank=True)
+    p_deactivated_on = models.DateTimeField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        # Set p_inserted_on when the profile is first created
+        if not self.pk and not self.p_inserted_on:
+            self.p_inserted_on = timezone.now()
+
+        # Set p_deactivated_on when the profile is deactivated
+        if self.pk:
+            original = Profile_header_all.objects.get(pk=self.pk)
+            if original.p_status == self.STATUS_ACTIVE and self.p_status == self.STATUS_INACTIVE:  # If deactivating
+                self.p_deactivated_on = timezone.now()
+            elif original.p_status == self.STATUS_INACTIVE and self.p_status == self.STATUS_ACTIVE:  # If reactivating
+                self.p_deactivated_on = None
+
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.profile_id} - {self.profile_name}"
@@ -188,5 +213,3 @@ class User_header_all(models.Model):
             default_assignment.profile = None
             default_assignment.is_active = True
             default_assignment.save()
-
-
