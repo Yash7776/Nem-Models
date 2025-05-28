@@ -1,43 +1,65 @@
 {% extends 'accounts/base.html' %}
 {% block title %}All Users{% endblock %}
 {% block content %}
-<h1 class="mb-4">All Users</h1>
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Unique ID</th>
-            <th>Name</th>
-            <th>Username</th>
-            <th>Email</th>
-            <th>Designation</th>
-            <th>Mobile No</th>
-            <th>Status</th>
-            <th>Created On</th>
-            <th>Updated On</th>
-            <th>Edit User</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for row in rows %}
-        <tr>
-            <td>{{ row.id }}</td>
-            <td>{{ row.user_id }}</td>
-            <td>{{ row.name }}</td>
-            <td>{{ row.username }}</td>
-            <td>{{ row.email|default:"--" }}</td>
-            <td>{{ row.designation }}</td>
-            <td>{{ row.mobile_no|default:"--" }}</td>
-            <td>{{ row.is_active|yesno:"Active,Inactive" }}</td>
-            <td>{{ row.created_on }}</td>
-            <td>{{ row.updated_on }}</td>
-            <td><a href="{% url 'edit_user' row.id %}">Edit</a></td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="11">No users found</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-users me-2"></i>All Users
+        </h6>
+        <a href="{% url 'create_user' %}" class="btn btn-sm btn-primary">
+            <i class="fas fa-user-plus me-1"></i> Create New User
+        </a>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="thead-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Unique ID</th>
+                        <th>Name</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Mobile No</th>
+                        <th>Status</th>
+                        <th>Created On</th>
+                        <th>Updated On</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        <td>{{ row.id }}</td>
+                        <td>{{ row.user_id }}</td>
+                        <td>{{ row.name }}</td>
+                        <td>{{ row.username }}</td>
+                        <td>{{ row.email|default:"--" }}</td>
+                        <td>{{ row.mobile_no|default:"--" }}</td>
+                        <td>
+                            <span class="status-badge {% if row.is_active %}status-active{% else %}status-inactive{% endif %}">
+                                {{ row.is_active|yesno:"Active,Inactive" }}
+                            </span>
+                        </td>
+                        <td>{{ row.created_on|date:"M d, Y H:i" }}</td>
+                        <td>{{ row.updated_on|date:"M d, Y H:i" }}</td>
+                        <td class="action-buttons">
+                            <a href="{% url 'edit_user' row.id %}" class="btn btn-sm btn-warning" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="#" class="btn btn-sm btn-info" title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="11" class="text-center py-4">No users found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 {% endblock %}

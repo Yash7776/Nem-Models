@@ -110,7 +110,6 @@ class User_header_all(models.Model):
     email = models.CharField(max_length=150, blank=True)
     username = models.CharField(max_length=150)
     password = models.CharField(max_length=128)
-    designation = models.CharField(max_length=100)
     mobile_no = models.CharField(max_length=10, blank=True, validators=[mobile_validator])
     profile = models.ForeignKey(
         Profile_header_all,
@@ -175,7 +174,6 @@ class User_header_all(models.Model):
                 email=self.email,
                 username=self.username,
                 password=self.password,  # Password is already hashed
-                designation=self.designation,
                 mobile_no=self.mobile_no,
                 profile=profile,
                 is_active=True
@@ -203,7 +201,6 @@ class User_header_all(models.Model):
                 'email': self.email,
                 'username': self.username,
                 'password': self.password,  # Password is already hashed
-                'designation': self.designation,
                 'mobile_no': self.mobile_no,
                 'profile': None,
                 'is_active': True

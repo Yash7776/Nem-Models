@@ -1,58 +1,81 @@
 {% extends 'accounts/base.html' %}
 {% block title %}Users Summary{% endblock %}
 {% block content %}
-<h1 class="mb-4">Users Summary</h1>
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Unique ID</th>
-            <th>Name</th>
-            <th>Username</th>
-            <th>Email</th>
-            <th>Mobile No</th>
-            <th>Activated Profiles</th>
-            <th>Deactivated Profiles</th>
-            <th>Status</th>
-            <th>Edit User</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for entry in user_data %}
-        <tr>
-            <td>{{ entry.user.user_id }}</td>
-            <td>{{ entry.user.name }}</td>
-            <td>{{ entry.user.username }}</td>
-            <td>{{ entry.user.email|default:"--" }}</td>
-            <td>{{ entry.user.mobile_no|default:"--" }}</td>
-            <td>
-                {% if entry.activated_profiles %}
-                    {{ entry.activated_profiles|join:", " }}
-                {% else %}
-                    No Active Profile
-                {% endif %}
-            </td>
-            <td>
-                {% if entry.deactivated_profiles %}
-                    {{ entry.deactivated_profiles|join:", " }}
-                {% else %}
-                    No Deactivate Profile
-                {% endif %}
-            </td>
-            <td>{{ entry.user.is_active|yesno:"Active,Inactive" }}</td>
-            <td>
-                <a href="{% url 'edit_user' entry.user.id %}" class="btn btn-sm btn-warning">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
-                        <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
-                        <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
-                    </svg>
-                </a>
-            </td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="9">No users found</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-chart-pie me-2"></i>Users Summary
+        </h6>
+        <div>
+            <a href="{% url 'all_users' %}" class="btn btn-sm btn-primary me-2">
+                <i class="fas fa-table me-1"></i> Detailed View
+            </a>
+            <a href="{% url 'create_user' %}" class="btn btn-sm btn-success">
+                <i class="fas fa-user-plus me-1"></i> Create User
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="thead-light">
+                    <tr>
+                        <th>Unique ID</th>
+                        <th>Name</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Mobile No</th>
+                        <th>Activated Profiles</th>
+                        <th>Deactivated Profiles</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in user_data %}
+                    <tr>
+                        <td>{{ entry.user.user_id }}</td>
+                        <td>{{ entry.user.name }}</td>
+                        <td>{{ entry.user.username }}</td>
+                        <td>{{ entry.user.email|default:"--" }}</td>
+                        <td>{{ entry.user.mobile_no|default:"--" }}</td>
+                        <td>
+                            {% if entry.activated_profiles %}
+                                {% for profile in entry.activated_profiles %}
+                                    <span class="badge bg-success mb-1">{{ profile }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="badge bg-secondary">No Active Profile</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if entry.deactivated_profiles %}
+                                {% for profile in entry.deactivated_profiles %}
+                                    <span class="badge bg-warning text-dark mb-1">{{ profile }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="badge bg-secondary">No Deactivated Profile</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="status-badge {% if entry.user.is_active %}status-active{% else %}status-inactive{% endif %}">
+                                {{ entry.user.is_active|yesno:"Active,Inactive" }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'edit_user' entry.user.id %}" class="btn btn-sm btn-warning" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center py-4">No users found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 {% endblock %}

@@ -1,118 +1,213 @@
 {% extends 'accounts/base.html' %}
 {% block title %}Create New User{% endblock %}
 {% block content %}
-<h1 class="mb-4">Create New User</h1>
-
-{% if messages %}
-    <ul class="list-unstyled">
-        {% for message in messages %}
-            <li class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-user-plus me-2"></i>Create New User
+        </h6>
+    </div>
+    <div class="card-body">
+        {% if messages %}
+        <div class="mb-4">
+            {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show"
+                role="alert">
+                <i class="fas {% if message.tags == 'error' %}fa-exclamation-circle{% else %}fa-check-circle{% endif %} me-2"></i>
                 {{ message }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </li>
-        {% endfor %}
-    </ul>
-{% endif %}
-
-<form method="post" class="row g-3" id="create-user-form" onsubmit="return validateForm()">
-    {% csrf_token %}
-    <div class="col-md-6">
-        <label for="username" class="form-label">Username</label>
-        <input type="text" id="username" name="username" class="form-control" required oninput="checkSpaces(this)">
-        <div id="username_error" class="invalid-feedback"></div>
-    </div>
-    <div class="col-md-6">
-        <label for="name" class="form-label">Name</label>
-        <input type="text" id="name" name="name" class="form-control" required>
-    </div>
-    <div class="col-md-6">
-        <label for="email" class="form-label">Email</label>
-        <input type="email" id="email" name="email" class="form-control" oninput="checkSpaces(this)">
-        <div id="email_error" class="invalid-feedback"></div>
-    </div>
-    <div class="col-md-6">
-        <label for="password" class="form-label">Password</label>
-        <input type="password" id="password" name="password" class="form-control" required oninput="checkSpaces(this)">
-        <div id="password_error" class="invalid-feedback"></div>
-    </div>
-    <div class="col-md-6">
-        <label for="designation" class="form-label">Designation</label>
-        <input type="text" id="designation" name="designation" class="form-control" required>
-    </div>
-    <div class="col-md-6">
-        <label for="mobile_no" class="form-label">Mobile No</label>
-        <input type="text" id="mobile_no" name="mobile_no" class="form-control"
-               pattern="[0-9]{10}" title="Mobile number must be exactly 10 digits"
-               placeholder="e.g., 9876543210" oninput="validateMobileNo(this)">
-        <div id="mobile_no_error" class="invalid-feedback"></div>
-    </div>
-    <div class="col-md-6">
-        <label for="profile" class="form-label">Assign Profile</label>
-        <select id="profile" name="profile" class="form-select">
-            <option value="">-- None --</option>
-            {% for profile in profiles %}
-                <option value="{{ profile.profile_id }}">{{ profile.profile_name }} ({{ profile.profile_id }})</option>
+            </div>
             {% endfor %}
-        </select>
+        </div>
+        {% endif %}
+
+        <form method="post" class="row g-3" id="create-user-form" onsubmit="return validateForm()">
+            {% csrf_token %}
+            <div class="col-md-6">
+                <label for="username" class="form-label">Username</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-user"></i></span>
+                    <input type="text" id="username" name="username" class="form-control" required oninput="checkSpaces(this)">
+                </div>
+                <div id="username_error" class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+                <label for="name" class="form-label">Full Name</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-id-card"></i></span>
+                    <input type="text" id="name" name="name" class="form-control" required>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label for="email" class="form-label">Email</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                    <input type="email" id="email" name="email" class="form-control" oninput="checkSpaces(this)">
+                </div>
+                <div id="email_error" class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+                <label for="password" class="form-label">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                    <input type="password" id="password" name="password" class="form-control" required oninput="checkSpaces(this)">
+                    <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+                <div id="password_error" class="invalid-feedback"></div>
+            </div>
+            
+            <div class="col-12">
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="m-0 font-weight-bold text-primary">Location Information</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">State</label>
+                                <select class="form-select">
+                                    <option selected>राज्य निवडा</option>
+                                    <option value="1">महाराष्ट्र</option>
+                                    <option value="2">तामिळनाडू</option>
+                                    <option value="3">आसाम</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">District</label>
+                                <select class="form-select">
+                                    <option selected>जिल्हा निवडा</option>
+                                    <option value="1">नाशिक</option>
+                                    <option value="2">पुणे</option>
+                                    <option value="3">मुंबई</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Taluka</label>
+                                <select class="form-select">
+                                    <option selected>तालुका निवडा</option>
+                                    <option value="1">अमळनेर</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Village</label>
+                                <select class="form-select">
+                                    <option selected>गाव निवडा</option>
+                                    <option value="1">नांदगाव</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <label for="mobile_no" class="form-label">Mobile No</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-mobile-alt"></i></span>
+                    <input type="text" id="mobile_no" name="mobile_no" class="form-control" pattern="[0-9]{10}"
+                        title="Mobile number must be exactly 10 digits" placeholder="e.g., 9876543210"
+                        oninput="validateMobileNo(this)">
+                </div>
+                <div id="mobile_no_error" class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+                <label for="profile" class="form-label">Assign Profile</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-id-badge"></i></span>
+                    <select id="profile" name="profile" class="form-select">
+                        <option value="">-- None --</option>
+                        {% for profile in profiles %}
+                        <option value="{{ profile.profile_id }}">{{ profile.profile_name }} ({{ profile.profile_id }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="col-12 mt-4">
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="fas fa-save me-2"></i>Create User
+                </button>
+                <a href="{% url 'all_users' %}" class="btn btn-secondary px-4 ms-2">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </a>
+            </div>
+        </form>
     </div>
-    <div class="col-12">
-        <button type="submit" class="btn btn-primary">Create User</button>
-    </div>
-</form>
+</div>
 
 <script>
-function checkSpaces(input) {
-    const fieldId = input.id;
-    const errorDiv = document.getElementById(fieldId + "_error");
-
-    if (input.value && /\s/.test(input.value)) {
-        input.classList.add('is-invalid');
-        errorDiv.textContent = `${fieldId.charAt(0).toUpperCase() + fieldId.slice(1)} cannot contain spaces.`;
-    } else {
-        input.classList.remove('is-invalid');
-        errorDiv.textContent = "";
-    }
-}
-
-function validateMobileNo(input) {
-    const errorDiv = document.getElementById('mobile_no_error');
-    let value = input.value;
-
-    // Remove non-digit characters
-    value = value.replace(/\D/g, '');
-    input.value = value;
-
-    if (value) {
-        if (value.length !== 10) {
-            input.classList.add('is-invalid');
-            errorDiv.textContent = 'Mobile number must be exactly 10 digits long.';
-        } else if (!/^[6-9]/.test(value)) {
-            input.classList.add('is-invalid');
-            errorDiv.textContent = 'Mobile number must start with 6, 7, 8, or 9.';
+    // Toggle password visibility
+    document.getElementById('togglePassword').addEventListener('click', function() {
+        const passwordInput = document.getElementById('password');
+        const icon = this.querySelector('i');
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
         } else {
-            input.classList.remove('is-invalid');
-            errorDiv.textContent = '';
+            passwordInput.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
         }
-    } else {
-        input.classList.remove('is-invalid');
-        errorDiv.textContent = '';
-    }
-}
-
-function validateForm() {
-    let isValid = true;
-
-    ['username', 'password', 'email'].forEach(id => {
-        const input = document.getElementById(id);
-        checkSpaces(input);
-        if (input.classList.contains('is-invalid')) isValid = false;
     });
 
-    const mobileInput = document.getElementById('mobile_no');
-    validateMobileNo(mobileInput);
-    if (mobileInput.classList.contains('is-invalid')) isValid = false;
+    function checkSpaces(input) {
+        const fieldId = input.id;
+        const errorDiv = document.getElementById(fieldId + "_error");
+        const parentDiv = input.closest('.input-group');
 
-    return isValid;
-}
+        if (input.value && /\s/.test(input.value)) {
+            parentDiv.classList.add('is-invalid');
+            errorDiv.textContent = `${fieldId.charAt(0).toUpperCase() + fieldId.slice(1)} cannot contain spaces.`;
+        } else {
+            parentDiv.classList.remove('is-invalid');
+            errorDiv.textContent = "";
+        }
+    }
+
+    function validateMobileNo(input) {
+        const errorDiv = document.getElementById('mobile_no_error');
+        const parentDiv = input.closest('.input-group');
+        let value = input.value;
+
+        // Remove non-digit characters
+        value = value.replace(/\D/g, '');
+        input.value = value;
+
+        if (value) {
+            if (value.length !== 10) {
+                parentDiv.classList.add('is-invalid');
+                errorDiv.textContent = 'Mobile number must be exactly 10 digits long.';
+            } else if (!/^[6-9]/.test(value)) {
+                parentDiv.classList.add('is-invalid');
+                errorDiv.textContent = 'Mobile number must start with 6, 7, 8, or 9.';
+            } else {
+                parentDiv.classList.remove('is-invalid');
+                errorDiv.textContent = '';
+            }
+        } else {
+            parentDiv.classList.remove('is-invalid');
+            errorDiv.textContent = '';
+        }
+    }
+
+    function validateForm() {
+        let isValid = true;
+
+        ['username', 'password', 'email'].forEach(id => {
+            const input = document.getElementById(id);
+            const parentDiv = input.closest('.input-group');
+            checkSpaces(input);
+            if (parentDiv.classList.contains('is-invalid')) isValid = false;
+        });
+
+        const mobileInput = document.getElementById('mobile_no');
+        const mobileParent = mobileInput.closest('.input-group');
+        validateMobileNo(mobileInput);
+        if (mobileParent.classList.contains('is-invalid')) isValid = false;
+
+        return isValid;
+    }
 </script>
 {% endblock %}

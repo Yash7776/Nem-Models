@@ -9,7 +9,7 @@ class ProfileHeaderAdmin(admin.ModelAdmin):
 @admin.register(User_header_all)
 class UserHeaderAdmin(admin.ModelAdmin):
     list_display = (
-        'id', 'user_id', 'username', 'name', 'email', 'designation',
+        'id', 'user_id', 'username', 'name', 'email',
         'mobile_no', 'line_no', 'profile', 'is_active', 'created_on', 'updated_on'
     )
     ordering = ('id',)  # ascending order by id
