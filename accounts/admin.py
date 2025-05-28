@@ -15,7 +15,7 @@ class ProfileHeaderForm(forms.ModelForm):
 @admin.register(Profile_header_all)
 class ProfileHeaderAdmin(admin.ModelAdmin):
     form = ProfileHeaderForm
-    list_display = ('profile_id', 'profile_name', 'is_active')
+    list_display = ('profile_id', 'profile_name', 'p_status', 'pro_inserted_on', 'pro_deactivated_on')
     ordering = ('profile_id',)  # ascending order by profile_id
 
 @admin.register(User_header_all)

@@ -34,11 +34,11 @@
     {% for assignment in assignments %}
         <li class="list-group-item d-flex justify-content-between align-items-center">
             Profile ID: {{ assignment.profile.profile_id|default:"--" }} (Line: {{ assignment.line_no }}, 
-            Status: {{ assignment.is_active|yesno:"Active,Inactive" }})
+            Status: {{ assignment.profile.p_status|yesno:"Active,Inactive" }})
             {% if assignment.profile %}
-            <a href="{% url 'toggle_profile_status' user.username assignment.line_no %}?is_active={% if assignment.is_active %}false{% else %}true{% endif %}" 
-               class="btn btn-sm {% if assignment.is_active %}btn-warning{% else %}btn-success{% endif %}">
-                {% if assignment.is_active %}Deactivate{% else %}Activate{% endif %}
+            <a href="{% url 'toggle_profile_status' user.username assignment.line_no %}?is_active={% if assignment.profile.p_status %}false{% else %}true{% endif %}" 
+               class="btn btn-sm {% if assignment.profile.p_status %}btn-warning{% else %}btn-success{% endif %}">
+                {% if assignment.profile.p_status %}Deactivate{% else %}Activate{% endif %}
             </a>
             {% endif %}
         </li>

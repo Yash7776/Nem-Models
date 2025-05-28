@@ -10,7 +10,9 @@ class Profile_header_all(models.Model):
     profile_name = models.CharField(max_length=100)
     pro_form_ids = ArrayField(models.CharField(), default=list, blank=True, help_text="List of accessible Form IDs like ['F_MAN_001', 'F_MAIN_002']")
     pro_process_ids = ArrayField(models.CharField(), default=list, blank=True, help_text="List of accessible Process IDs like ['P_MAN_0001', 'P_DOC_0002']")
-    is_active = models.BooleanField(default=True)
+    p_status = models.BooleanField(default=True)  # Renamed from is_active
+    pro_inserted_on = models.DateTimeField(auto_now_add=True)  # New field for creation time
+    pro_deactivated_on = models.DateTimeField(null=True, blank=True)  # New field for deactivation time
 
     def __str__(self):
         return f"{self.profile_id} - {self.profile_name}"
@@ -36,6 +38,12 @@ class Profile_header_all(models.Model):
     def save(self, *args, **kwargs):
         if not self.profile_id:
             self.profile_id = self.get_or_assign_profile_id(self.profile_name)
+        # Set pro_deactivated_on when p_status is False
+        if not self.p_status and not self.pro_deactivated_on:
+            self.pro_deactivated_on = timezone.now()
+        elif self.p_status and self.pro_deactivated_on:
+            # Clear pro_deactivated_on if p_status is True
+            self.pro_deactivated_on = None
         super().save(*args, **kwargs)
 
 class UniqueIdHeaderAll(models.Model):
