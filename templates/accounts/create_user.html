@@ -22,8 +22,8 @@
         <div id="username_error" class="invalid-feedback"></div>
     </div>
     <div class="col-md-6">
-        <label for="name" class="form-label">Name</label>
-        <input type="text" id="name" name="name" class="form-control" required>
+        <label for="full_name" class="form-label">Full Name</label>
+        <input type="text" id="full_name" name="full_name" class="form-control" required>
     </div>
     <div class="col-md-6">
         <label for="email" class="form-label">Email</label>
@@ -36,15 +36,16 @@
         <div id="password_error" class="invalid-feedback"></div>
     </div>
     <div class="col-md-6">
-        <label for="designation" class="form-label">Designation</label>
-        <input type="text" id="designation" name="designation" class="form-control" required>
-    </div>
-    <div class="col-md-6">
         <label for="mobile_no" class="form-label">Mobile No</label>
         <input type="text" id="mobile_no" name="mobile_no" class="form-control"
                pattern="[0-9]{10}" title="Mobile number must be exactly 10 digits"
                placeholder="e.g., 9876543210" oninput="validateMobileNo(this)">
         <div id="mobile_no_error" class="invalid-feedback"></div>
+    </div>
+    <div class="col-md-6">
+        <label for="project_id" class="form-label">Project IDs (comma-separated)</label>
+        <input type="text" id="project_id" name="project_id" class="form-control"
+               placeholder="e.g., PROJ001,PROJ002">
     </div>
     <div class="col-md-6">
         <label for="profile" class="form-label">Assign Profile</label>
@@ -78,7 +79,6 @@ function validateMobileNo(input) {
     const errorDiv = document.getElementById('mobile_no_error');
     let value = input.value;
 
-    // Remove non-digit characters
     value = value.replace(/\D/g, '');
     input.value = value;
 

@@ -58,26 +58,26 @@ def toggle_profile_status(request, username, line_no):
 
 def all_users(request):
     rows = User_header_all.objects.all().order_by('id')
-    return render(request, 'accounts/all_users.html', {'rows': rows})
+    return render(request, 'accounts/all_users.html', {
+        'rows': rows,
+    })
 
 def create_user(request):
     profiles = Profile_header_all.objects.all()
     if request.method == 'POST':
         username = request.POST.get('username')
-        name = request.POST.get('name')
+        full_name = request.POST.get('full_name')
         email = request.POST.get('email', '')
         password = request.POST.get('password')
-        designation = request.POST.get('designation')
         mobile_no = request.POST.get('mobile_no', '')
+        project_id = request.POST.get('project_id', '')
         profile_id = request.POST.get('profile')
 
-        # Check if a user with this username already exists
         existing_user = User_header_all.objects.filter(username=username).first()
         if existing_user:
             messages.error(request, "User Already Exists")
             return redirect('create_user')
 
-        # Check if the mobile number is already used by another user_id
         if mobile_no:
             existing_mobile = User_header_all.objects.filter(mobile_no=mobile_no).first()
             if existing_mobile:
@@ -87,19 +87,21 @@ def create_user(request):
         user_id = User_header_all.get_or_assign_user_id(username)
 
         try:
+            project_id_list = [pid.strip() for pid in project_id.split(',') if pid.strip()] if project_id else []
+
             user = User_header_all(
                 user_id=user_id,
                 line_no=0,
-                name=name,
+                full_name=full_name,
                 email=email,
                 username=username,
                 password=password,
-                designation=designation,
                 mobile_no=mobile_no,
-                profile=None,
-                is_active=True
+                profile_id=None,
+                project_id=project_id_list,
+                status=1
             )
-            user.full_clean()  # Run model validation
+            user.full_clean()
             user.save()
 
             if profile_id:
@@ -121,7 +123,9 @@ def create_user(request):
             messages.error(request, "User Already Exists")
             return redirect('create_user')
 
-    return render(request, 'accounts/create_user.html', {'profiles': profiles})
+    return render(request, 'accounts/create_user.html', {
+        'profiles': profiles,
+    })
 
 def edit_user(request, user_id):
     user = get_object_or_404(User_header_all, id=user_id)
@@ -129,16 +133,15 @@ def edit_user(request, user_id):
     assignments = User_header_all.objects.filter(user_id=user.user_id).order_by('line_no')
 
     if request.method == 'POST':
-        name = request.POST.get('name')
+        full_name = request.POST.get('full_name')
         email = request.POST.get('email', '')
         username = request.POST.get('username')
         password = request.POST.get('password')
-        designation = request.POST.get('designation')
         mobile_no = request.POST.get('mobile_no', '')
+        project_id = request.POST.get('project_id', '')
         profile_id = request.POST.get('profile')
 
         try:
-            # Check if the mobile number is already used by another user_id
             if mobile_no and mobile_no != user.mobile_no:
                 existing_mobile = User_header_all.objects.filter(mobile_no=mobile_no).exclude(user_id=user.user_id).first()
                 if existing_mobile:
@@ -149,11 +152,11 @@ def edit_user(request, user_id):
                         'assignments': assignments,
                     })
 
-            user.name = name
+            user.full_name = full_name
             user.email = email
-            user.designation = designation
+            user.project_id = [pid.strip() for pid in project_id.split(',') if pid.strip()] if project_id else []
             user.mobile_no = mobile_no
-            user.profile = Profile_header_all.objects.get(id=profile_id) if profile_id else None
+            user.profile_id = Profile_header_all.objects.get(id=profile_id) if profile_id else None
 
             if user.username != username:
                 existing_user = User_header_all.objects.filter(username=username).exclude(user_id=user.user_id).first()
@@ -168,7 +171,6 @@ def edit_user(request, user_id):
                 User_header_all.objects.filter(user_id=user.user_id).update(username=username)
                 user.username = username
 
-            # Update password only if a new one is provided
             if password:
                 user.password = password
 
@@ -197,27 +199,27 @@ def toggle_user_status(request, username):
     user = get_object_or_404(User_header_all, username=username, line_no=0)
     activate = request.GET.get('activate', 'false').lower() == 'true'
     if activate:
-        User_header_all.objects.filter(user_id=user.user_id).update(is_active=True)
+        User_header_all.objects.filter(user_id=user.user_id).update(status=1)
         messages.success(request, f"User {username} has been activated.")
     else:
-        User_header_all.objects.filter(user_id=user.user_id).update(is_active=False)
+        User_header_all.objects.filter(user_id=user.user_id).update(status=0)
         messages.success(request, f"User {username} has been deactivated.")
     return redirect('user_detail', username=username)
 
 def users_summary(request):
-    # Get only the base records (line_no=0) for each user
     users = User_header_all.objects.filter(line_no=0).order_by('user_id')
     
-    # Prepare a list of users with their activated and deactivated profiles
     user_data = []
     for user in users:
-        assignments = User_header_all.objects.filter(user_id=user.user_id, profile__isnull=False)
-        activated_profiles = [assignment.profile.profile_id for assignment in assignments if assignment.is_active]
-        deactivated_profiles = [assignment.profile.profile_id for assignment in assignments if not assignment.is_active]
+        assignments = User_header_all.objects.filter(user_id=user.user_id, profile_id__isnull=False)
+        activated_profiles = [assignment.profile_id.profile_id for assignment in assignments if assignment.status == 1]
+        deactivated_profiles = [assignment.profile_id.profile_id for assignment in assignments if assignment.status == 0]
         user_data.append({
             'user': user,
             'activated_profiles': activated_profiles,
             'deactivated_profiles': deactivated_profiles,
         })
     
-    return render(request, 'accounts/users_summary.html', {'user_data': user_data})
+    return render(request, 'accounts/users_summary.html', {
+        'user_data': user_data,
+    })

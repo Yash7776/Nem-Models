@@ -7,14 +7,12 @@
         <tr>
             <th>ID</th>
             <th>User ID</th>
-            <th>Name</th>
+            <th>Full Name</th>
             <th>Username</th>
             <th>Email</th>
-            <th>Designation</th>
             <th>Mobile No</th>
             <th>Status</th>
-            <th>Created On</th>
-            <th>Updated On</th>
+            <th>Inserted On</th>
             <th>Edit User</th>
         </tr>
     </thead>
@@ -23,19 +21,17 @@
         <tr>
             <td>{{ row.id }}</td>
             <td>{{ row.user_id }}</td>
-            <td>{{ row.name }}</td>
+            <td>{{ row.full_name }}</td>
             <td>{{ row.username }}</td>
             <td>{{ row.email|default:"--" }}</td>
-            <td>{{ row.designation }}</td>
             <td>{{ row.mobile_no|default:"--" }}</td>
-            <td>{{ row.is_active|yesno:"Active,Inactive" }}</td>
-            <td>{{ row.created_on }}</td>
-            <td>{{ row.updated_on }}</td>
+            <td>{{ row.get_status_display }}</td>
+            <td>{{ row.inserted_on }}</td>
             <td><a href="{% url 'edit_user' row.id %}">Edit</a></td>
         </tr>
         {% empty %}
         <tr>
-            <td colspan="11">No users found</td>
+            <td colspan="9">No users found</td>
         </tr>
         {% endfor %}
     </tbody>

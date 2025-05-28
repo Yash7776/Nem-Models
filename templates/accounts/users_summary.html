@@ -6,10 +6,11 @@
     <thead>
         <tr>
             <th>User ID</th>
-            <th>Name</th>
+            <th>Full Name</th>
             <th>Username</th>
             <th>Email</th>
             <th>Mobile No</th>
+            <th>Project IDs</th>
             <th>Activated Profiles</th>
             <th>Deactivated Profiles</th>
             <th>Status</th>
@@ -20,10 +21,11 @@
         {% for entry in user_data %}
         <tr>
             <td>{{ entry.user.user_id }}</td>
-            <td>{{ entry.user.name }}</td>
+            <td>{{ entry.user.full_name }}</td>
             <td>{{ entry.user.username }}</td>
             <td>{{ entry.user.email|default:"--" }}</td>
             <td>{{ entry.user.mobile_no|default:"--" }}</td>
+            <td>{{ entry.user.project_id|join:", "|default:"--" }}</td>
             <td>
                 {% if entry.activated_profiles %}
                     {{ entry.activated_profiles|join:", " }}
@@ -38,7 +40,7 @@
                     No Deactivate Profile
                 {% endif %}
             </td>
-            <td>{{ entry.user.is_active|yesno:"Active,Inactive" }}</td>
+            <td>{{ entry.user.get_status_display }}</td>
             <td>
                 <a href="{% url 'edit_user' entry.user.id %}" class="btn btn-sm btn-warning">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
@@ -50,7 +52,7 @@
         </tr>
         {% empty %}
         <tr>
-            <td colspan="9">No users found</td>
+            <td colspan="10">No users found</td>
         </tr>
         {% endfor %}
     </tbody>
