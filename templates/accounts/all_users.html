@@ -11,9 +11,12 @@
             <th>Username</th>
             <th>Email</th>
             <th>Mobile No</th>
+            <th>User Type</th>
+            <th>Project IDs</th>
             <th>Status</th>
             <th>Inserted On</th>
-            <th>Edit User</th>
+            <th>Deactivated On</th>
+            <th>Edit</th>
         </tr>
     </thead>
     <tbody>
@@ -25,13 +28,22 @@
             <td>{{ row.username }}</td>
             <td>{{ row.email|default:"--" }}</td>
             <td>{{ row.mobile_no|default:"--" }}</td>
+            <td>{{ row.get_user_type_display }}</td>
+            <td>
+                {% for dept, projects in row.project_id.items %}
+                    {{ dept }}: {{ projects|join:',' }}{% if not forloop.last %}; {% endif %}
+                {% empty %}
+                    --
+                {% endfor %}
+            </td>
             <td>{{ row.get_status_display }}</td>
             <td>{{ row.inserted_on }}</td>
+            <td>{{ row.deactivated_on|default:"--" }}</td>
             <td><a href="{% url 'edit_user' row.id %}">Edit</a></td>
         </tr>
         {% empty %}
         <tr>
-            <td colspan="9">No users found</td>
+            <td colspan="12">No users found</td>
         </tr>
         {% endfor %}
     </tbody>

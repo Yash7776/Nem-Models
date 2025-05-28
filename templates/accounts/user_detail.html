@@ -1,3 +1,4 @@
+```html
 {% extends 'accounts/base.html' %}
 {% block title %}{{ user.username }}'s Profile{% endblock %}
 {% block content %}
@@ -5,8 +6,18 @@
 <div class="card mb-4">
     <div class="card-body">
         <h5 class="card-title">User Details</h5>
+        <p class="card-text"><strong>User Type:</strong> {{ user.get_user_type_display }}</p>
         <p class="card-text"><strong>Mobile:</strong> {{ user.mobile_no|default:"--" }}</p>
-        <p class="card-text"><strong>Project IDs:</strong> {{ user.project_id|join:", "|default:"--" }}</p>
+        <p class="card-text"><strong>Project IDs:</strong>
+            {% for dept, projects in user.project_id.items %}
+                {{ dept }}: {{ projects|join:',' }}{% if not forloop.last %}; {% endif %}
+            {% empty %}
+                --
+            {% endfor %}
+        </p>
+        <p class="card-text"><strong>Status:</strong> {{ user.get_status_display }}</p>
+        <p class="card-text"><strong>Inserted On:</strong> {{ user.inserted_on }}</p>
+        <p class="card-text"><strong>Deactivated On:</strong> {{ user.deactivated_on|default:"--" }}</p>
     </div>
 </div>
 
@@ -65,3 +76,4 @@
     <a href="{% url 'all_users' %}" class="btn btn-secondary">View All Users (Table Format)</a>
 </p>
 {% endblock %}
+```

@@ -27,7 +27,7 @@ class UserHeaderAdmin(admin.ModelAdmin):
     form = UserHeaderForm
     list_display = (
         'id', 'user_id', 'username', 'full_name', 'email',
-        'mobile_no', 'line_no', 'profile_id', 'status', 'inserted_on'
+        'mobile_no', 'line_no', 'profile_id', 'user_type', 'status', 'inserted_on', 'deactivated_on'
     )
     ordering = ('id',)
 

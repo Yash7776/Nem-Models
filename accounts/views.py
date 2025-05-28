@@ -13,23 +13,24 @@ def user_detail(request, username):
         'profiles': profiles,
         'active_profiles': user.get_active_profiles(),
         'assignments': assignments,
+        'user_type_choices': User_header_all.USER_TYPE_CHOICES,
     })
 
 def assign_profile(request, username):
     user = get_object_or_404(User_header_all, username=username, line_no=0)
     profile_id = request.GET.get('profile_id')
     if not profile_id:
-        messages.error(request, "Please select a profile to assign.")
-        return redirect('user_detail', username=username)
+        messages.error(request, "Please select a profile to assign Profile ID {profile_id} assigned successfully.")
+        return redirect('user_detail', user_id=user_id)
     profile = get_object_or_404(Profile_header_all, profile_id=profile_id)
     try:
-        user.assign_profile(profile)
+        profile = User_header_all.objects.profile_id(profile_id)
         messages.success(request, f"Profile {profile_id} assigned successfully.")
     except ValidationError as e:
         messages.error(request, f"Failed to assign profile: {str(e)}")
     except IntegrityError as e:
         messages.error(request, "Failed to assign profile due to a database error. Please try again.")
-    return redirect('user_detail', username=username)
+    return redirect('user_detail', profile_id=profile_id)
 
 def assign_profile_from_edit(request, username):
     user = get_object_or_404(User_header_all, username=username, line_no=0)
@@ -60,6 +61,7 @@ def all_users(request):
     rows = User_header_all.objects.all().order_by('id')
     return render(request, 'accounts/all_users.html', {
         'rows': rows,
+        'user_type_choices': User_header_all.USER_TYPE_CHOICES,
     })
 
 def create_user(request):
@@ -70,7 +72,9 @@ def create_user(request):
         email = request.POST.get('email', '')
         password = request.POST.get('password')
         mobile_no = request.POST.get('mobile_no', '')
-        project_id = request.POST.get('project_id', '')
+        user_type = request.POST.get('user_type')
+        dept_id = request.POST.get('dept_id', '')
+        project_ids = request.POST.get('project_ids', '')
         profile_id = request.POST.get('profile')
 
         existing_user = User_header_all.objects.filter(username=username).first()
@@ -87,7 +91,10 @@ def create_user(request):
         user_id = User_header_all.get_or_assign_user_id(username)
 
         try:
-            project_id_list = [pid.strip() for pid in project_id.split(',') if pid.strip()] if project_id else []
+            project_id_dict = {}
+            if dept_id and project_ids:
+                project_id_list = [pid.strip() for pid in project_ids.split(',') if pid.strip()]
+                project_id_dict[dept_id] = project_id_list
 
             user = User_header_all(
                 user_id=user_id,
@@ -98,7 +105,8 @@ def create_user(request):
                 password=password,
                 mobile_no=mobile_no,
                 profile_id=None,
-                project_id=project_id_list,
+                project_id=project_id_dict,
+                user_type=int(user_type),
                 status=1
             )
             user.full_clean()
@@ -125,6 +133,7 @@ def create_user(request):
 
     return render(request, 'accounts/create_user.html', {
         'profiles': profiles,
+        'user_type_choices': User_header_all.USER_TYPE_CHOICES,
     })
 
 def edit_user(request, user_id):
@@ -138,7 +147,9 @@ def edit_user(request, user_id):
         username = request.POST.get('username')
         password = request.POST.get('password')
         mobile_no = request.POST.get('mobile_no', '')
-        project_id = request.POST.get('project_id', '')
+        user_type = request.POST.get('user_type')
+        dept_id = request.POST.get('dept_id', '')
+        project_ids = request.POST.get('project_ids', '')
         profile_id = request.POST.get('profile')
 
         try:
@@ -150,22 +161,31 @@ def edit_user(request, user_id):
                         'user': user,
                         'profiles': profiles,
                         'assignments': assignments,
+                        'user_type_choices': User_header_all.USER_TYPE_CHOICES,
                     })
 
             user.full_name = full_name
             user.email = email
-            user.project_id = [pid.strip() for pid in project_id.split(',') if pid.strip()] if project_id else []
+            user.user_type = int(user_type)
+
+            project_id_dict = user.project_id
+            if dept_id and project_ids:
+                project_id_list = [pid.strip() for pid in project_ids.split(',') if pid.strip()]
+                project_id_dict[dept_id] = project_id_list
+            user.project_id = project_id_dict
+
             user.mobile_no = mobile_no
             user.profile_id = Profile_header_all.objects.get(id=profile_id) if profile_id else None
 
             if user.username != username:
-                existing_user = User_header_all.objects.filter(username=username).exclude(user_id=user.user_id).first()
+                existing_user = User_header_all.objects.filter(username=username).exclude(id=user_id).first()
                 if existing_user:
                     messages.error(request, f"Username '{username}' is already taken by another user.")
                     return render(request, 'accounts/edit_user.html', {
                         'user': user,
                         'profiles': profiles,
                         'assignments': assignments,
+                        'user_type_choices': User_header_all.USER_TYPE_CHOICES,
                     })
 
                 User_header_all.objects.filter(user_id=user.user_id).update(username=username)
@@ -182,27 +202,29 @@ def edit_user(request, user_id):
         except ValidationError as e:
             for field, errors in e.message_dict.items():
                 for error in errors:
-                    messages.error(request, f"{field.capitalize()}: {error}")
+                    messages.error(request, f"{field}: {error}")
             return render(request, 'accounts/edit_user.html', {
                 'user': user,
                 'profiles': profiles,
                 'assignments': assignments,
+                'user_type_choices': User_header_all.USER_TYPE_CHOICES,
             })
 
     return render(request, 'accounts/edit_user.html', {
         'user': user,
         'profiles': profiles,
         'assignments': assignments,
+        'user_type_choices': User_header_all.USER_TYPE_CHOICES,
     })
 
 def toggle_user_status(request, username):
     user = get_object_or_404(User_header_all, username=username, line_no=0)
     activate = request.GET.get('activate', 'false').lower() == 'true'
     if activate:
-        User_header_all.objects.filter(user_id=user.user_id).update(status=1)
-        messages.success(request, f"User {username} has been activated.")
+        User_header_all.objects.filter(user_id=user.user_id).update(status=1, deactivated_on=None)
+        messages.success(request.SUCCESS, f"User {username} has been activated.")
     else:
-        User_header_all.objects.filter(user_id=user.user_id).update(status=0)
+        User_header_all.objects.filter(user_id=user.user_id).update(status=0, deactivated_on=timezone.now())
         messages.success(request, f"User {username} has been deactivated.")
     return redirect('user_detail', username=username)
 
@@ -222,4 +244,5 @@ def users_summary(request):
     
     return render(request, 'accounts/users_summary.html', {
         'user_data': user_data,
+        'user_type_choices': User_header_all.USER_TYPE_CHOICES,
     })

@@ -1,9 +1,24 @@
 from django.db import models, transaction
 from django.utils import timezone
 from django.core.validators import RegexValidator
-from django.contrib.auth.hashers import make_password, check_password
+from django.contrib.auth.hashers import make_password
 from django.contrib.postgres.fields import ArrayField
 import re
+
+class Department(models.Model):
+    dept_id = models.CharField(max_length=20, unique=True)
+    name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.dept_id
+
+class Project(models.Model):
+    project_id = models.CharField(max_length=20, unique=True)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.project_id
 
 class Profile_header_all(models.Model):
     profile_id = models.CharField(max_length=20, unique=True)
@@ -22,7 +37,6 @@ class Profile_header_all(models.Model):
         existing_profile = cls.objects.filter(profile_name=profile_name).first()
         if existing_profile:
             return existing_profile.profile_id
-
         unique_id, _ = UniqueIdHeaderAll.objects.get_or_create(
             table_name='profile_header_all',
             id_for='profile_id',
@@ -64,21 +78,16 @@ class UniqueIdHeaderAll(models.Model):
             self.last_id = next_id
             self.save()
             return next_id
-
         last_id_parts = self.last_id.split('-')
         if len(last_id_parts) != 2:
             raise ValueError(f"Invalid last_id format: {self.last_id}")
-
         prefix, rest = last_id_parts
         alphabets = ''.join(re.findall(r'[A-Z]', rest))
         digits = ''.join(re.findall(r'\d+', rest))
-
         alpha_len = len(alphabets)
         digit_len = 5 - alpha_len
-
         if alpha_len == 5:
             raise ValueError("Reached the maximum ID limit: ZZZZZ")
-
         if digits == '9' * digit_len:
             if alphabets == 'Z' and alpha_len == 1:
                 alphabets = 'ZA'
@@ -105,7 +114,6 @@ class UniqueIdHeaderAll(models.Model):
         else:
             next_number = int(digits) + 1
             digits = str(next_number).zfill(digit_len)
-
         next_id = f"{self.prefix}-{alphabets}{digits}"
         self.last_id = next_id
         self.save()
@@ -123,6 +131,11 @@ class User_header_all(models.Model):
         (1, 'Active'),
         (0, 'Inactive'),
     )
+    USER_TYPE_CHOICES = (
+        (1, 'Platform owner'),
+        (2, 'Department'),
+        (3, 'Contractor'),
+    )
 
     user_id = models.CharField(max_length=15)
     line_no = models.IntegerField(default=0)
@@ -138,9 +151,11 @@ class User_header_all(models.Model):
         blank=True,
         related_name='user_assignments'
     )
-    project_id = models.JSONField(default=list)
+    project_id = models.JSONField(default=dict)
+    user_type = models.IntegerField(choices=USER_TYPE_CHOICES, default=1)
     status = models.IntegerField(choices=STATUS_CHOICES, default=1)
     inserted_on = models.DateTimeField(auto_now_add=True)
+    deactivated_on = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         unique_together = ('user_id', 'line_no')
@@ -151,6 +166,10 @@ class User_header_all(models.Model):
     def save(self, *args, **kwargs):
         if self.password and not self.password.startswith('pbkdf2_'):
             self.password = make_password(self.password)
+        if self.status == 0 and not self.deactivated_on:
+            self.deactivated_on = timezone.now()
+        elif self.status == 1 and self.deactivated_on:
+            self.deactivated_on = None
         super().save(*args, **kwargs)
 
     @classmethod
@@ -158,7 +177,6 @@ class User_header_all(models.Model):
         existing_user = cls.objects.filter(username=username).first()
         if existing_user:
             return existing_user.user_id
-
         unique_id, _ = UniqueIdHeaderAll.objects.get_or_create(
             table_name='user_header_all',
             id_for='user_id',
@@ -174,10 +192,8 @@ class User_header_all(models.Model):
     def assign_profile(self, profile):
         if not isinstance(profile, Profile_header_all):
             raise ValueError("Invalid profile instance")
-        
         if User_header_all.objects.filter(user_id=self.user_id, profile_id=profile).exists():
             return
-
         with transaction.atomic():
             max_line = User_header_all.objects.filter(user_id=self.user_id).select_for_update().aggregate(
                 models.Max('line_no')
@@ -185,7 +201,6 @@ class User_header_all(models.Model):
             if max_line is None:
                 max_line = -1
             next_line_no = max_line + 1
-
             User_header_all.objects.create(
                 user_id=self.user_id,
                 line_no=next_line_no,
@@ -196,7 +211,10 @@ class User_header_all(models.Model):
                 mobile_no=self.mobile_no,
                 profile_id=profile,
                 project_id=self.project_id,
-                status=1
+                user_type=self.user_type,
+                status=1,
+                inserted_on=timezone.now(),
+                deactivated_on=None
             )
 
     def set_profile_active(self, line_no, active=True):
@@ -224,10 +242,28 @@ class User_header_all(models.Model):
                 'mobile_no': self.mobile_no,
                 'profile_id': None,
                 'project_id': self.project_id,
-                'status': 1
+                'user_type': self.user_type,
+                'status': 1,
+                'inserted_on': timezone.now(),
+                'deactivated_on': None
             }
         )
         if default_assignment.profile_id:
             default_assignment.profile_id = None
             default_assignment.status = 1
+            default_assignment.deactivated_on = None
             default_assignment.save()
+
+    def get_projects_for_department(self, dept_id):
+        projects = Project.objects.filter(department__dept_id=dept_id).values_list('project_id', flat=True)
+        return list(projects)
+
+    def assign_projects_to_department(self, dept_id, project_ids):
+        if not self.project_id:
+            self.project_id = {}
+        valid_project_ids = self.get_projects_for_department(dept_id)
+        invalid_projects = [pid for pid in project_ids if pid not in valid_project_ids]
+        if invalid_projects:
+            raise ValueError(f"Projects {invalid_projects} do not belong to department {dept_id}")
+        self.project_id[dept_id] = project_ids
+        self.save()

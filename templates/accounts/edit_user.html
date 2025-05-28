@@ -42,9 +42,22 @@
         <div id="mobile_no_error" class="invalid-feedback"></div>
     </div>
     <div class="col-md-6">
-        <label for="project_id" class="form-label">Project IDs (comma-separated)</label>
-        <input type="text" id="project_id" name="project_id" value="{{ user.project_id|join:',' }}" class="form-control"
-               placeholder="e.g., PROJ001,PROJ002">
+        <label for="user_type" class="form-label">User Type</label>
+        <select id="user_type" name="user_type" class="form-select" required>
+            {% for value, label in user_type_choices %}
+                <option value="{{ value }}" {% if user.user_type == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-6">
+        <label for="dept_id" class="form-label">Department ID</label>
+        <input type="text" id="dept_id" name="dept_id" class="form-control" placeholder="e.g., dept-001"
+               value="{% for dept in user.project_id.keys %}{{ dept }}{% if not forloop.last %},{% endif %}{% endfor %}">
+    </div>
+    <div class="col-md-6">
+        <label for="project_ids" class="form-label">Project IDs (comma-separated)</label>
+        <input type="text" id="project_ids" name="project_ids" class="form-control" placeholder="e.g., 1,2,3"
+               value="{% for dept, projects in user.project_id.items %}{% if forloop.first %}{{ projects|join:',' }}{% endif %}{% endfor %}">
     </div>
     <div class="col-md-6">
         <label for="profile" class="form-label">Profile</label>

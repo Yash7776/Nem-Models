@@ -43,9 +43,20 @@
         <div id="mobile_no_error" class="invalid-feedback"></div>
     </div>
     <div class="col-md-6">
-        <label for="project_id" class="form-label">Project IDs (comma-separated)</label>
-        <input type="text" id="project_id" name="project_id" class="form-control"
-               placeholder="e.g., PROJ001,PROJ002">
+        <label for="user_type" class="form-label">User Type</label>
+        <select id="user_type" name="user_type" class="form-select" required>
+            {% for value, label in user_type_choices %}
+                <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-6">
+        <label for="dept_id" class="form-label">Department ID</label>
+        <input type="text" id="dept_id" name="dept_id" class="form-control" placeholder="e.g., dept-001">
+    </div>
+    <div class="col-md-6">
+        <label for="project_ids" class="form-label">Project IDs (comma-separated)</label>
+        <input type="text" id="project_ids" name="project_ids" class="form-control" placeholder="e.g., 1,2,3">
     </div>
     <div class="col-md-6">
         <label for="profile" class="form-label">Assign Profile</label>
@@ -65,7 +76,6 @@
 function checkSpaces(input) {
     const fieldId = input.id;
     const errorDiv = document.getElementById(fieldId + "_error");
-
     if (input.value && /\s/.test(input.value)) {
         input.classList.add('is-invalid');
         errorDiv.textContent = `${fieldId.charAt(0).toUpperCase() + fieldId.slice(1)} cannot contain spaces.`;
@@ -78,10 +88,8 @@ function checkSpaces(input) {
 function validateMobileNo(input) {
     const errorDiv = document.getElementById('mobile_no_error');
     let value = input.value;
-
     value = value.replace(/\D/g, '');
     input.value = value;
-
     if (value) {
         if (value.length !== 10) {
             input.classList.add('is-invalid');
@@ -101,17 +109,14 @@ function validateMobileNo(input) {
 
 function validateForm() {
     let isValid = true;
-
     ['username', 'password', 'email'].forEach(id => {
         const input = document.getElementById(id);
         checkSpaces(input);
         if (input.classList.contains('is-invalid')) isValid = false;
     });
-
     const mobileInput = document.getElementById('mobile_no');
     validateMobileNo(mobileInput);
     if (mobileInput.classList.contains('is-invalid')) isValid = false;
-
     return isValid;
 }
 </script>

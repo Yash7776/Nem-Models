@@ -10,6 +10,7 @@
             <th>Username</th>
             <th>Email</th>
             <th>Mobile No</th>
+            <th>User Type</th>
             <th>Project IDs</th>
             <th>Activated Profiles</th>
             <th>Deactivated Profiles</th>
@@ -25,7 +26,14 @@
             <td>{{ entry.user.username }}</td>
             <td>{{ entry.user.email|default:"--" }}</td>
             <td>{{ entry.user.mobile_no|default:"--" }}</td>
-            <td>{{ entry.user.project_id|join:", "|default:"--" }}</td>
+            <td>{{ entry.user.get_user_type_display }}</td>
+            <td>
+                {% for dept, projects in entry.user.project_id.items %}
+                    {{ dept }}: {{ projects|join:',' }}{% if not forloop.last %}; {% endif %}
+                {% empty %}
+                    --
+                {% endfor %}
+            </td>
             <td>
                 {% if entry.activated_profiles %}
                     {{ entry.activated_profiles|join:", " }}
@@ -37,7 +45,7 @@
                 {% if entry.deactivated_profiles %}
                     {{ entry.deactivated_profiles|join:", " }}
                 {% else %}
-                    No Deactivate Profile
+                    No Deactivated Profile
                 {% endif %}
             </td>
             <td>{{ entry.user.get_status_display }}</td>
@@ -52,7 +60,7 @@
         </tr>
         {% empty %}
         <tr>
-            <td colspan="10">No users found</td>
+            <td colspan="11">No users found</td>
         </tr>
         {% endfor %}
     </tbody>
