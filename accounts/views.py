@@ -7,7 +7,7 @@ from .models import User_header_all, Profile_header_all
 def user_detail(request, username):
     user = get_object_or_404(User_header_all, username=username, line_no=0)
     assignments = User_header_all.objects.filter(user_id=user.user_id).order_by('line_no')
-    profiles = Profile_header_all.objects.filter(p_status=Profile_header_all.STATUS_ACTIVE)  # Only active profiles
+    profiles = Profile_header_all.objects.all()
     return render(request, 'accounts/user_detail.html', {
         'user': user,
         'profiles': profiles,
@@ -61,7 +61,7 @@ def all_users(request):
     return render(request, 'accounts/all_users.html', {'rows': rows})
 
 def create_user(request):
-    profiles = Profile_header_all.objects.filter(p_status=Profile_header_all.STATUS_ACTIVE)  # Only active profiles
+    profiles = Profile_header_all.objects.all()
     if request.method == 'POST':
         username = request.POST.get('username')
         name = request.POST.get('name')
@@ -125,7 +125,7 @@ def create_user(request):
 
 def edit_user(request, user_id):
     user = get_object_or_404(User_header_all, id=user_id)
-    profiles = Profile_header_all.objects.filter(p_status=Profile_header_all.STATUS_ACTIVE)  # Only active profiles
+    profiles = Profile_header_all.objects.all()
     assignments = User_header_all.objects.filter(user_id=user.user_id).order_by('line_no')
 
     if request.method == 'POST':

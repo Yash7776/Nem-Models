@@ -3,48 +3,46 @@ from django.utils import timezone
 from django.core.validators import RegexValidator
 from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.postgres.fields import ArrayField
-import string
+import re
 
 class Profile_header_all(models.Model):
-    # Choices for p_status
-    STATUS_INACTIVE = 0
-    STATUS_ACTIVE = 1
-    STATUS_CHOICES = [
-        (STATUS_INACTIVE, 'Inactive'),
-        (STATUS_ACTIVE, 'Active'),
-    ]
-
     profile_id = models.CharField(max_length=20, unique=True)
     profile_name = models.CharField(max_length=100)
     pro_form_ids = ArrayField(models.CharField(), default=list, blank=True, help_text="List of accessible Form IDs like ['F_MAN_001', 'F_MAIN_002']")
     pro_process_ids = ArrayField(models.CharField(), default=list, blank=True, help_text="List of accessible Process IDs like ['P_MAN_0001', 'P_DOC_0002']")
-    p_status = models.SmallIntegerField(choices=STATUS_CHOICES, default=STATUS_ACTIVE)  # Renamed from is_active
-    p_inserted_on = models.DateTimeField(null=True, blank=True)
-    p_deactivated_on = models.DateTimeField(null=True, blank=True)
-
-    def save(self, *args, **kwargs):
-        # Set p_inserted_on when the profile is first created
-        if not self.pk and not self.p_inserted_on:
-            self.p_inserted_on = timezone.now()
-
-        # Set p_deactivated_on when the profile is deactivated
-        if self.pk:
-            original = Profile_header_all.objects.get(pk=self.pk)
-            if original.p_status == self.STATUS_ACTIVE and self.p_status == self.STATUS_INACTIVE:  # If deactivating
-                self.p_deactivated_on = timezone.now()
-            elif original.p_status == self.STATUS_INACTIVE and self.p_status == self.STATUS_ACTIVE:  # If reactivating
-                self.p_deactivated_on = None
-
-        super().save(*args, **kwargs)
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.profile_id} - {self.profile_name}"
 
+    @classmethod
+    def get_or_assign_profile_id(cls, profile_name):
+        existing_profile = cls.objects.filter(profile_name=profile_name).first()
+        if existing_profile:
+            return existing_profile.profile_id
+
+        unique_id, _ = UniqueIdHeaderAll.objects.get_or_create(
+            table_name='profile_header_all',
+            id_for='profile_id',
+            defaults={
+                'prefix': 'PHA',
+                'last_id': '',
+                'created_on': timezone.now(),
+                'modified_on': timezone.now()
+            }
+        )
+        return unique_id.get_next_id()
+
+    def save(self, *args, **kwargs):
+        if not self.profile_id:
+            self.profile_id = self.get_or_assign_profile_id(self.profile_name)
+        super().save(*args, **kwargs)
+
 class UniqueIdHeaderAll(models.Model):
     table_name = models.CharField(max_length=100)
     id_for = models.CharField(max_length=50)
-    prefix = models.CharField(max_length=20)
-    last_id = models.CharField(max_length=15)
+    prefix = models.CharField(max_length=3)  # E.g., UHA, PHA
+    last_id = models.CharField(max_length=15)  # E.g., PHA-A0001
     created_on = models.DateTimeField()
     modified_on = models.DateTimeField()
 
@@ -54,49 +52,69 @@ class UniqueIdHeaderAll(models.Model):
         self.modified_on = timezone.now()
         super().save(*args, **kwargs)
 
-    def increment_alphanumeric(self, s):
-        """
-        Increment a 5-character alphanumeric string (00001 to ZZZZZ).
-        """
-        chars = string.digits + string.ascii_uppercase  # 0-9, then A-Z
-        base = len(chars)  # 36 (10 digits + 26 letters)
-        s = s.rjust(5, '0')  # Ensure length is 5, pad with leading zeros
-
-        # Convert to number
-        num = 0
-        for c in s:
-            num = num * base + chars.index(c)
-
-        # Increment
-        num += 1
-        if num > base ** 5:  # If we exceed ZZZZZ
-            raise ValueError("ID limit exceeded (ZZZZZ reached)")
-
-        # Convert back to string
-        new_s = ''
-        for _ in range(5):
-            new_s = chars[num % base] + new_s
-            num //= base
-
-        return new_s.rjust(5, '0'), num  # Return the new ID and its numeric position
-
     def get_next_id(self):
         if not self.last_id:
-            self.last_id = f"{self.prefix}-00001"  # Start from "prefix-00001"
-            sequence_number = 1
-        else:
-            # Extract the alphanumeric part from last_id (e.g., "00001" from "UHA-00001")
-            current_id = self.last_id.split('-')[-1]
-            # Increment the alphanumeric part
-            next_id, sequence_number = self.increment_alphanumeric(current_id)
-            # Store last_id with the prefix
-            self.last_id = f"{self.prefix}-{next_id}"
+            # Initialize with the first ID, e.g., PHA-A0001
+            next_id = f"{self.prefix}-A0001"
+            self.last_id = next_id
+            self.save()
+            return next_id
 
+        # Parse the last_id, e.g., PHA-A0001 -> prefix: PHA, alphabets: A, digits: 0001
+        last_id_parts = self.last_id.split('-')
+        if len(last_id_parts) != 2:
+            raise ValueError(f"Invalid last_id format: {self.last_id}")
+
+        prefix, rest = last_id_parts
+        alphabets = ''.join(re.findall(r'[A-Z]', rest))
+        digits = ''.join(re.findall(r'\d+', rest))
+
+        # Total length of alphabets + digits must be 5
+        alpha_len = len(alphabets)
+        digit_len = 5 - alpha_len  # Number of digits decreases as alphabets increase
+
+        if alpha_len == 5:
+            raise ValueError("Reached the maximum ID limit: ZZZZZ")
+
+        # Check if we need to increment the alphabetic part
+        if digits == '9' * digit_len:  # e.g., 9999, 999, 99, 9
+            if alphabets == 'Z' and alpha_len == 1:
+                alphabets = 'ZA'  # Z -> ZA
+                digits = '001'    # 3 digits (ZA001)
+            elif alphabets == 'ZZ' and alpha_len == 2:
+                alphabets = 'ZZA'  # ZZ -> ZZA
+                digits = '01'      # 2 digits (ZZA01)
+            elif alphabets == 'ZZZ' and alpha_len == 3:
+                alphabets = 'ZZZZ'  # ZZZ -> ZZZZ
+                digits = '1'        # 1 digit (ZZZZ1)
+            elif alphabets == 'ZZZZ' and alpha_len == 4:
+                alphabets = 'ZZZZZ'  # ZZZZ -> ZZZZZ
+                digits = ''          # 0 digits (ZZZZZ)
+            elif alpha_len == 0:
+                alphabets = 'A'      # 9999 -> A0001
+                digits = '0001'      # 4 digits (A0001)
+            elif alpha_len in [1, 2, 3] and alphabets[-1] != 'Z':
+                # A -> B, ZA -> ZB, ZZA -> ZZB
+                last_char = alphabets[-1]
+                alphabets = alphabets[:-1] + chr(ord(last_char) + 1)
+                digits = '1'.zfill(digit_len)  # Reset digits (e.g., 0001, 001, 01)
+            elif alpha_len in [2, 3] and alphabets[-1] == 'Z':
+                # ZA -> ZZA, ZZA -> ZZZA
+                alphabets += 'A'
+                digits = '1'.zfill(digit_len - 1)  # One less digit (e.g., 001, 01)
+        else:
+            # Increment the numeric part
+            next_number = int(digits) + 1
+            digits = str(next_number).zfill(digit_len)
+
+        # Construct the next ID
+        next_id = f"{self.prefix}-{alphabets}{digits}"
+        self.last_id = next_id
         self.save()
-        return self.last_id, sequence_number  # Return the formatted ID and sequence number
+        return next_id
 
     def __str__(self):
-        return f"{self.prefix}_{self.last_id} for {self.id_for} in {self.table_name}"
+        return f"{self.table_name}"
 
 class User_header_all(models.Model):
     mobile_validator = RegexValidator(
@@ -104,12 +122,13 @@ class User_header_all(models.Model):
         message='Mobile number must be 10 digits and start with 6, 7, 8, or 9.'
     )
 
-    user_id = models.IntegerField()
+    user_id = models.CharField(max_length=15)  # Supports format like UHA-A0001
     line_no = models.IntegerField(default=0)
     name = models.CharField(max_length=150)
     email = models.CharField(max_length=150, blank=True)
     username = models.CharField(max_length=150)
     password = models.CharField(max_length=128)
+    designation = models.CharField(max_length=100)
     mobile_no = models.CharField(max_length=10, blank=True, validators=[mobile_validator])
     profile = models.ForeignKey(
         Profile_header_all,
@@ -125,7 +144,7 @@ class User_header_all(models.Model):
     class Meta:
         unique_together = ('user_id', 'line_no')
 
-    def _str_(self):
+    def __str__(self):
         return f"{self.username} (Line {self.line_no})"
 
     def save(self, *args, **kwargs):
@@ -142,15 +161,15 @@ class User_header_all(models.Model):
 
         unique_id, _ = UniqueIdHeaderAll.objects.get_or_create(
             table_name='user_header_all',
-            id_for='user',
+            id_for='user_id',
             defaults={
+                'prefix': 'UHA',
                 'last_id': '',
                 'created_on': timezone.now(),
                 'modified_on': timezone.now()
             }
         )
-        _, sequence_number = unique_id.get_next_id()  # Get the sequence number
-        return sequence_number
+        return unique_id.get_next_id()
 
     def assign_profile(self, profile):
         if not isinstance(profile, Profile_header_all):
@@ -174,6 +193,7 @@ class User_header_all(models.Model):
                 email=self.email,
                 username=self.username,
                 password=self.password,  # Password is already hashed
+                designation=self.designation,
                 mobile_no=self.mobile_no,
                 profile=profile,
                 is_active=True
@@ -201,6 +221,7 @@ class User_header_all(models.Model):
                 'email': self.email,
                 'username': self.username,
                 'password': self.password,  # Password is already hashed
+                'designation': self.designation,
                 'mobile_no': self.mobile_no,
                 'profile': None,
                 'is_active': True

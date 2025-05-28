@@ -1,235 +1,134 @@
 {% extends 'accounts/base.html' %}
 {% block title %}Edit User - ID: {{ user.id }}{% endblock %}
 {% block content %}
-<div class="card shadow mb-4">
-    <div class="card-header py-3 d-flex justify-content-between align-items-center">
-        <h6 class="m-0 font-weight-bold text-primary">
-            <i class="fas fa-user-edit me-2"></i>Edit User - ID: {{ user.id }}
-        </h6>
-        <div>
-            <a href="{% url 'all_users' %}" class="btn btn-sm btn-secondary">
-                <i class="fas fa-arrow-left me-1"></i> Back to All Users
-            </a>
-        </div>
-    </div>
-    <div class="card-body">
-        {% if messages %}
-        <div class="mb-4">
-            {% for message in messages %}
-            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show"
-                role="alert">
-                <i class="fas {% if message.tags == 'error' %}fa-exclamation-circle{% else %}fa-check-circle{% endif %} me-2"></i>
+<h1 class="mb-4">Edit User - ID: {{ user.id }}</h1>
+
+{% if messages %}
+    <ul class="list-unstyled">
+        {% for message in messages %}
+            <li class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
                 {{ message }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+{% endif %}
 
-        <div class="row">
-            <div class="col-lg-6">
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h6 class="m-0 font-weight-bold text-primary">
-                            <i class="fas fa-user-cog me-2"></i>User Details
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <form method="post" action="{% url 'edit_user' user.id %}" id="edit-user-form" onsubmit="return validateForm()">
-                            {% csrf_token %}
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label for="name" class="form-label">Name</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-id-card"></i></span>
-                                        <input type="text" id="name" name="name" value="{{ user.name }}" class="form-control" required>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="email" class="form-label">Email</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                                        <input type="email" id="email" name="email" value="{{ user.email|default_if_none:"" }}" class="form-control">
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="username" class="form-label">Username</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-user"></i></span>
-                                        <input type="text" id="username" name="username" value="{{ user.username }}" class="form-control" required>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="password" class="form-label">New Password</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                                        <input type="password" id="password" name="password" class="form-control" placeholder="Enter new password">
-                                        <button class="btn btn-outline-secondary" type="button" id="togglePassword">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                    </div>
-                                    <small class="form-text text-muted">Leave blank to keep the current password.</small>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="mobile_no" class="form-label">Mobile No</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-mobile-alt"></i></span>
-                                        <input type="text" id="mobile_no" name="mobile_no" value="{{ user.mobile_no|default_if_none:"" }}"
-                                               class="form-control" pattern="[0-9]{6,10}" title="Mobile number must be 6 to 10 digits"
-                                               placeholder="e.g., 9876543210" oninput="validateMobileNo(this)">
-                                    </div>
-                                    <div id="mobile_no_error" class="invalid-feedback"></div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label for="profile" class="form-label">Profile</label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="fas fa-id-badge"></i></span>
-                                        <select id="profile" name="profile" class="form-select">
-                                            <option value="">-- None --</option>
-                                            {% for profile in profiles %}
-                                                <option value="{{ profile.id }}" {% if user.profile.id == profile.id %}selected{% endif %}>
-                                                    {{ profile.profile_name }} ({{ profile.profile_id }})
-                                                </option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="col-12 mt-3">
-                                    <button type="submit" class="btn btn-primary px-4">
-                                        <i class="fas fa-save me-2"></i>Save Changes
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-                
-                <div class="card mb-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h6 class="m-0 font-weight-bold text-primary">
-                            <i class="fas fa-user-shield me-2"></i>User Status
-                        </h6>
-                        <span class="status-badge {% if user.is_active %}status-active{% else %}status-inactive{% endif %}">
-                            {{ user.is_active|yesno:"Active,Inactive" }}
-                        </span>
-                    </div>
-                    <div class="card-body text-center">
-                        {% if user.is_active %}
-                            <a href="{% url 'toggle_user_status' user.username %}?activate=false" class="btn btn-danger px-4">
-                                <i class="fas fa-user-slash me-2"></i>Master Deactivate User
-                            </a>
-                        {% else %}
-                            <a href="{% url 'toggle_user_status' user.username %}?activate=true" class="btn btn-success px-4">
-                                <i class="fas fa-user-check me-2"></i>Master Activate User
-                            </a>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-lg-6">
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h6 class="m-0 font-weight-bold text-primary">
-                            <i class="fas fa-id-card-alt me-2"></i>Assigned Profiles
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <ul class="list-group">
-                            {% for assignment in assignments %}
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <strong>Profile ID:</strong> {{ assignment.profile.profile_id|default:"--" }}<br>
-                                        <small class="text-muted">
-                                            Line: {{ assignment.line_no }}, 
-                                            Status: <span class="{% if assignment.is_active %}text-success{% else %}text-danger{% endif %}">
-                                                {{ assignment.is_active|yesno:"Active,Inactive" }}
-                                            </span>
-                                        </small>
-                                    </div>
-                                    {% if assignment.profile %}
-                                    <a href="{% url 'toggle_profile_status' user.username assignment.line_no %}?is_active={% if assignment.is_active %}false{% else %}true{% endif %}&redirect_to=edit" 
-                                       class="btn btn-sm {% if assignment.is_active %}btn-warning{% else %}btn-success{% endif %}">
-                                        {% if assignment.is_active %}<i class="fas fa-toggle-off me-1"></i>Deactivate{% else %}<i class="fas fa-toggle-on me-1"></i>Activate{% endif %}
-                                    </a>
-                                    {% endif %}
-                                </li>
-                            {% empty %}
-                                <li class="list-group-item text-center py-3">No profiles assigned</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-                
-                <div class="card">
-                    <div class="card-header">
-                        <h6 class="m-0 font-weight-bold text-primary">
-                            <i class="fas fa-plus-circle me-2"></i>Assign New Profile
-                        </h6>
-                    </div>
-                    <div class="card-body">
-                        <form method="get" action="{% url 'assign_profile_from_edit' user.username %}" class="row g-3">
-                            <div class="col-md-8">
-                                <select name="profile_id" class="form-select">
-                                    {% for profile in profiles %}
-                                        <option value="{{ profile.profile_id }}">{{ profile.profile_name }} ({{ profile.profile_id }})</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <button type="submit" class="btn btn-primary w-100">
-                                    <i class="fas fa-plus me-1"></i> Assign
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
+<h2 class="mb-3">User Details</h2>
+<form method="post" action="{% url 'edit_user' user.id %}" class="row g-3 mb-4" id="edit-user-form" onsubmit="return validateForm()">
+    {% csrf_token %}
+    <div class="col-md-6">
+        <label for="name" class="form-label">Name</label>
+        <input type="text" id="name" name="name" value="{{ user.name }}" class="form-control" required>
     </div>
+    <div class="col-md-6">
+        <label for="email" class="form-label">Email</label>
+        <input type="email" id="email" name="email" value="{{ user.email|default_if_none:"" }}" class="form-control">
+    </div>
+    <div class="col-md-6">
+        <label for="username" class="form-label">Username</label>
+        <input type="text" id="username" name="username" value="{{ user.username }}" class="form-control" required>
+    </div>
+    <div class="col-md-6">
+        <label for="password" class="form-label">New Password (leave blank to keep current)</label>
+        <input type="password" id="password" name="password" class="form-control" placeholder="Enter new password">
+        <small class="form-text text-muted">Leave blank to keep the current password.</small>
+    </div>
+    <div class="col-md-6">
+        <label for="designation" class="form-label">Designation</label>
+        <input type="text" id="designation" name="designation" value="{{ user.designation }}" class="form-control" required>
+    </div>
+    <div class="col-md-6">
+        <label for="mobile_no" class="form-label">Mobile No</label>
+        <input type="text" id="mobile_no" name="mobile_no" value="{{ user.mobile_no|default_if_none:"" }}"
+               class="form-control" pattern="[0-9]{6,10}" title="Mobile number must be 6 to 10 digits"
+               placeholder="e.g., 9876543210" oninput="validateMobileNo(this)">
+        <div id="mobile_no_error" class="invalid-feedback"></div>
+    </div>
+    <div class="col-md-6">
+        <label for="profile" class="form-label">Profile</label>
+        <select id="profile" name="profile" class="form-select">
+            <option value="">-- None --</option>
+            {% for profile in profiles %}
+                <option value="{{ profile.id }}" {% if user.profile.id == profile.id %}selected{% endif %}>
+                    {{ profile.profile_name }} ({{ profile.profile_id }})
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-12">
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+    </div>
+</form>
+
+<h2 class="mb-3">Assigned Profiles</h2>
+<ul class="list-group mb-4">
+    {% for assignment in assignments %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            Profile ID: {{ assignment.profile.profile_id|default:"--" }} (Line: {{ assignment.line_no }}, 
+            Status: {{ assignment.is_active|yesno:"Active,Inactive" }})
+            {% if assignment.profile %}
+            <a href="{% url 'toggle_profile_status' user.username assignment.line_no %}?is_active={% if assignment.is_active %}false{% else %}true{% endif %}&redirect_to=edit" 
+               class="btn btn-sm {% if assignment.is_active %}btn-warning{% else %}btn-success{% endif %}">
+                {% if assignment.is_active %}Deactivate{% else %}Activate{% endif %}
+            </a>
+            {% endif %}
+        </li>
+    {% empty %}
+        <li class="list-group-item">No profiles assigned</li>
+    {% endfor %}
+</ul>
+
+<div class="mb-4">
+    {% if user.is_active %}
+        <a href="{% url 'toggle_user_status' user.username %}?activate=false" class="btn btn-danger">Master Deactivate User</a>
+    {% else %}
+        <a href="{% url 'toggle_user_status' user.username %}?activate=true" class="btn btn-success">Master Activate User</a>
+    {% endif %}
 </div>
 
+<h2 class="mb-3">Assign New Profile</h2>
+<form method="get" action="{% url 'assign_profile_from_edit' user.username %}" class="row g-3 mb-4">
+    <div class="col-md-4">
+        <select name="profile_id" class="form-select">
+            {% for profile in profiles %}
+                <option value="{{ profile.profile_id }}">{{ profile.profile_name }} ({{ profile.profile_id }})</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Assign</button>
+    </div>
+</form>
+
+<p>
+    <a href="{% url 'all_users' %}" class="btn btn-secondary">Back to All Users</a>
+</p>
+
 <script>
-    // Toggle password visibility
-    document.getElementById('togglePassword').addEventListener('click', function() {
-        const passwordInput = document.getElementById('password');
-        const icon = this.querySelector('i');
-        if (passwordInput.type === 'password') {
-            passwordInput.type = 'text';
-            icon.classList.remove('fa-eye');
-            icon.classList.add('fa-eye-slash');
-        } else {
-            passwordInput.type = 'password';
-            icon.classList.remove('fa-eye-slash');
-            icon.classList.add('fa-eye');
-        }
-    });
-
-    function validateMobileNo(input) {
-        const errorDiv = document.getElementById('mobile_no_error');
-        const parentDiv = input.closest('.input-group');
-        const value = input.value;
-        const digits = value.replace(/\D/g, ''); // Extract digits only
-        if (value && (digits.length < 6 || digits.length > 10)) {
-            parentDiv.classList.add('is-invalid');
-            errorDiv.textContent = 'Mobile number must be 6 to 10 digits long.';
-        } else {
-            parentDiv.classList.remove('is-invalid');
-            errorDiv.textContent = '';
-        }
+function validateMobileNo(input) {
+    const errorDiv = document.getElementById('mobile_no_error');
+    const value = input.value;
+    const digits = value.replace(/\D/g, ''); // Extract digits only
+    if (value && (digits.length < 6 || digits.length > 10)) {
+        input.classList.add('is-invalid');
+        errorDiv.textContent = 'Mobile number must be 6 to 10 digits long.';
+    } else {
+        input.classList.remove('is-invalid');
+        errorDiv.textContent = '';
     }
+}
 
-    function validateForm() {
-        const mobileInput = document.getElementById('mobile_no');
-        const mobileParent = mobileInput.closest('.input-group');
-        const value = mobileInput.value;
-        const digits = value.replace(/\D/g, '');
-        if (value && (digits.length < 6 || digits.length > 10)) {
-            mobileParent.classList.add('is-invalid');
-            document.getElementById('mobile_no_error').textContent = 'Mobile number must be 6 to 10 digits long.';
-            return false;
-        }
-        return true;
+function validateForm() {
+    const mobileInput = document.getElementById('mobile_no');
+    const value = mobileInput.value;
+    const digits = value.replace(/\D/g, '');
+    if (value && (digits.length < 6 || digits.length > 10)) {
+        mobileInput.classList.add('is-invalid');
+        document.getElementById('mobile_no_error').textContent = 'Mobile number must be 6 to 10 digits long.';
+        return false;
     }
+    return true;
+}
 </script>
 {% endblock %}
