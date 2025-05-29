@@ -3,7 +3,11 @@ from django.contrib import messages
 from django.db import IntegrityError
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
-from .models import User_header_all, Profile_header_all, StateHeaderAll, DistrictHeaderAll, TalukaHeaderAll, VillageHeaderAll, ProjectLocationDetailsAll
+from django.db.models import Q
+from .models import (
+    User_header_all, Profile_header_all, StateHeaderAll, DistrictHeaderAll,
+    TalukaHeaderAll, VillageHeaderAll
+)
 
 def user_detail(request, username):
     user = get_object_or_404(User_header_all, username=username, line_no=0)
@@ -67,7 +71,6 @@ def all_users(request):
 
 def create_user(request):
     profiles = Profile_header_all.objects.all()
-    states = StateHeaderAll.objects.filter(st_status=True)
     if request.method == 'POST':
         username = request.POST.get('username')
         full_name = request.POST.get('full_name')
@@ -78,10 +81,6 @@ def create_user(request):
         dept_id = request.POST.get('dept_id', '')
         project_ids = request.POST.get('project_ids', '')
         profile_id = request.POST.get('profile')
-        st_id = request.POST.get('st_id')
-        dist_id = request.POST.get('dist_id')
-        tal_id = request.POST.get('tal_id')
-        vil_id = request.POST.get('vil_id')
 
         existing_user = User_header_all.objects.filter(username=username).first()
         if existing_user:
@@ -89,7 +88,6 @@ def create_user(request):
             return render(request, 'accounts/create_user.html', {
                 'profiles': profiles,
                 'user_type_choices': User_header_all.USER_TYPE_CHOICES,
-                'states': states,
             })
 
         if mobile_no:
@@ -99,7 +97,6 @@ def create_user(request):
                 return render(request, 'accounts/create_user.html', {
                     'profiles': profiles,
                     'user_type_choices': User_header_all.USER_TYPE_CHOICES,
-                    'states': states,
                 })
 
         user_id = User_header_all.get_or_assign_user_id(username)
@@ -122,30 +119,7 @@ def create_user(request):
                 project_id=project_id_dict,
                 user_type=int(user_type),
                 status=1,
-                st_id=StateHeaderAll.objects.get(st_id=st_id) if st_id else None,
-                dist_id=DistrictHeaderAll.objects.get(dist_id=dist_id) if dist_id else None,
-                tal_id=TalukaHeaderAll.objects.get(tal_id=tal_id) if tal_id else None,
-                vil_id=VillageHeaderAll.objects.get(vil_id=vil_id) if vil_id else None,
             )
-
-            # Validate location against project_id
-            if vil_id and project_id_dict:
-                project_ids = []
-                for projects in project_id_dict.values():
-                    project_ids.extend([int(pid) for pid in projects if pid.isdigit()])
-                if project_ids:
-                    valid_location = ProjectLocationDetailsAll.objects.filter(
-                        project_id__in=project_ids,
-                        vil_id=vil_id,
-                        status=True
-                    ).exists()
-                    if not valid_location:
-                        messages.error(request, "Selected village is not associated with the specified projects.")
-                        return render(request, 'accounts/create_user.html', {
-                            'profiles': profiles,
-                            'user_type_choices': User_header_all.USER_TYPE_CHOICES,
-                            'states': states,
-                        })
 
             user.full_clean()
             user.save()
@@ -168,27 +142,23 @@ def create_user(request):
             return render(request, 'accounts/create_user.html', {
                 'profiles': profiles,
                 'user_type_choices': User_header_all.USER_TYPE_CHOICES,
-                'states': states,
             })
         except IntegrityError:
             messages.error(request, "User Already Exists")
             return render(request, 'accounts/create_user.html', {
                 'profiles': profiles,
                 'user_type_choices': User_header_all.USER_TYPE_CHOICES,
-                'states': states,
             })
 
     return render(request, 'accounts/create_user.html', {
         'profiles': profiles,
         'user_type_choices': User_header_all.USER_TYPE_CHOICES,
-        'states': states,
     })
 
 def edit_user(request, user_id):
     user = get_object_or_404(User_header_all, id=user_id)
     profiles = Profile_header_all.objects.all()
     assignments = User_header_all.objects.filter(user_id=user.user_id).order_by('line_no')
-    states = StateHeaderAll.objects.filter(st_status=True)
 
     if request.method == 'POST':
         full_name = request.POST.get('full_name')
@@ -200,10 +170,6 @@ def edit_user(request, user_id):
         dept_id = request.POST.get('dept_id', '')
         project_ids = request.POST.get('project_ids', '')
         profile_id = request.POST.get('profile')
-        st_id = request.POST.get('st_id')
-        dist_id = request.POST.get('dist_id')
-        tal_id = request.POST.get('tal_id')
-        vil_id = request.POST.get('vil_id')
 
         try:
             if mobile_no and mobile_no != user.mobile_no:
@@ -215,7 +181,6 @@ def edit_user(request, user_id):
                         'profiles': profiles,
                         'assignments': assignments,
                         'user_type_choices': User_header_all.USER_TYPE_CHOICES,
-                        'states': states,
                     })
 
             user.full_name = full_name
@@ -230,31 +195,6 @@ def edit_user(request, user_id):
 
             user.mobile_no = mobile_no
             user.profile_id = Profile_header_all.objects.get(id=profile_id) if profile_id else None
-            user.st_id = StateHeaderAll.objects.get(st_id=st_id) if st_id else None
-            user.dist_id = DistrictHeaderAll.objects.get(dist_id=dist_id) if dist_id else None
-            user.tal_id = TalukaHeaderAll.objects.get(tal_id=tal_id) if tal_id else None
-            user.vil_id = VillageHeaderAll.objects.get(vil_id=vil_id) if vil_id else None
-
-            # Validate location against project_id
-            if vil_id:
-                project_ids = []
-                for projects in user.project_id.values():
-                    project_ids.extend([int(pid) for pid in projects if pid.isdigit()])
-                if project_ids:
-                    valid_location = ProjectLocationDetailsAll.objects.filter(
-                        project_id__in=project_ids,
-                        vil_id=vil_id,
-                        status=True
-                    ).exists()
-                    if not valid_location:
-                        messages.error(request, "Selected village is not associated with the user's projects.")
-                        return render(request, 'accounts/edit_user.html', {
-                            'user': user,
-                            'profiles': profiles,
-                            'assignments': assignments,
-                            'user_type_choices': User_header_all.USER_TYPE_CHOICES,
-                            'states': states,
-                        })
 
             if user.username != username:
                 existing_user = User_header_all.objects.filter(username=username).exclude(id=user_id).first()
@@ -265,7 +205,6 @@ def edit_user(request, user_id):
                         'profiles': profiles,
                         'assignments': assignments,
                         'user_type_choices': User_header_all.USER_TYPE_CHOICES,
-                        'states': states,
                     })
 
                 User_header_all.objects.filter(user_id=user.user_id).update(username=username)
@@ -288,7 +227,6 @@ def edit_user(request, user_id):
                 'profiles': profiles,
                 'assignments': assignments,
                 'user_type_choices': User_header_all.USER_TYPE_CHOICES,
-                'states': states,
             })
 
     return render(request, 'accounts/edit_user.html', {
@@ -296,7 +234,6 @@ def edit_user(request, user_id):
         'profiles': profiles,
         'assignments': assignments,
         'user_type_choices': User_header_all.USER_TYPE_CHOICES,
-        'states': states,
     })
 
 def toggle_user_status(request, username):
@@ -340,3 +277,196 @@ def get_talukas(request, district_id):
 def get_villages(request, taluka_id):
     villages = VillageHeaderAll.objects.filter(tal_id=taluka_id, status=True).values('vil_id', 'name')
     return JsonResponse({'villages': list(villages)})
+
+def search_states(request):
+    query = request.GET.get('query', '')
+    states = StateHeaderAll.objects.filter(
+        Q(st_name__icontains=query)
+    ).values('st_id', 'st_name', 'st_status')
+    return JsonResponse({
+        'states': list(states),
+        'has_results': len(states) > 0
+    })
+
+def search_districts(request):
+    query = request.GET.get('query', '')
+    state_id = request.GET.get('state_id', '')
+    districts = DistrictHeaderAll.objects.filter(
+        Q(dist_name__icontains=query)
+    )
+    if state_id:
+        districts = districts.filter(st_id=state_id)
+    districts = districts.values('dist_id', 'dist_name', 'status', 'st_id__st_name')
+    return JsonResponse({
+        'districts': list(districts),
+        'has_results': len(districts) > 0
+    })
+
+def search_talukas(request):
+    query = request.GET.get('query', '')
+    district_id = request.GET.get('district_id', '')
+    talukas = TalukaHeaderAll.objects.filter(
+        Q(tal_name__icontains=query)
+    )
+    if district_id:
+        talukas = talukas.filter(dist_id=district_id)
+    talukas = talukas.values('tal_id', 'tal_name', 'status', 'dist_id__dist_name', 'st_id__st_name')
+    return JsonResponse({
+        'talukas': list(talukas),
+        'has_results': len(talukas) > 0
+    })
+
+def search_villages(request):
+    query = request.GET.get('query', '')
+    taluka_id = request.GET.get('taluka_id', '')
+    villages = VillageHeaderAll.objects.filter(
+        Q(name__icontains=query)
+    )
+    if taluka_id:
+        villages = villages.filter(tal_id=taluka_id)
+    villages = villages.values('vil_id', 'name', 'status', 'tal_id__tal_name', 'dist_id__dist_name', 'st_id__st_name')
+    return JsonResponse({
+        'villages': list(villages),
+        'has_results': len(villages) > 0
+    })
+
+def add_state(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
+    
+    state_name = request.POST.get('state_name')
+    if not state_name:
+        return JsonResponse({'status': 'error', 'message': 'State name is required'}, status=400)
+    
+    state_name = state_name.strip()
+    if len(state_name) < 2:
+        return JsonResponse({'status': 'error', 'message': 'State name must be at least 2 characters long'}, status=400)
+    
+    try:
+        state = StateHeaderAll.objects.create(
+            st_name=state_name,
+            st_status=True
+        )
+        return JsonResponse({
+            'status': 'success',
+            'state': {
+                'st_id': state.st_id,
+                'st_name': state.st_name,
+                'st_status': state.st_status
+            }
+        })
+    except IntegrityError:
+        return JsonResponse({'status': 'error', 'message': 'A state with this name already exists'}, status=400)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Failed to add state: {str(e)}'}, status=500)
+
+def add_district(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
+    
+    district_name = request.POST.get('district_name')
+    state_id = request.POST.get('state_id')
+    if not district_name or not state_id:
+        return JsonResponse({'status': 'error', 'message': 'District name and State ID are required'}, status=400)
+    
+    district_name = district_name.strip()
+    if len(district_name) < 2:
+        return JsonResponse({'status': 'error', 'message': 'District name must be at least 2 characters long'}, status=400)
+    
+    try:
+        state = get_object_or_404(StateHeaderAll, st_id=state_id)
+        district = DistrictHeaderAll.objects.create(
+            st_id=state,
+            dist_name=district_name,
+            status=True
+        )
+        return JsonResponse({
+            'status': 'success',
+            'district': {
+                'dist_id': district.dist_id,
+                'dist_name': district.dist_name,
+                'status': district.status,
+                'st_id__st_name': district.st_id.st_name
+            }
+        })
+    except IntegrityError:
+        return JsonResponse({'status': 'error', 'message': 'A district with this name already exists in this state'}, status=400)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Failed to add district: {str(e)}'}, status=500)
+
+def add_taluka(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
+    
+    taluka_name = request.POST.get('taluka_name')
+    district_id = request.POST.get('district_id')
+    if not taluka_name or not district_id:
+        return JsonResponse({'status': 'error', 'message': 'Taluka name and District ID are required'}, status=400)
+    
+    taluka_name = taluka_name.strip()
+    if len(taluka_name) < 2:
+        return JsonResponse({'status': 'error', 'message': 'Taluka name must be at least 2 characters long'}, status=400)
+    
+    try:
+        district = get_object_or_404(DistrictHeaderAll, dist_id=district_id)
+        taluka = TalukaHeaderAll.objects.create(
+            st_id=district.st_id,
+            dist_id=district,
+            tal_name=taluka_name,
+            status=True
+        )
+        return JsonResponse({
+            'status': 'success',
+            'taluka': {
+                'tal_id': taluka.tal_id,
+                'tal_name': taluka.tal_name,
+                'status': taluka.status,
+                'dist_id__dist_name': taluka.dist_id.dist_name,
+                'st_id__st_name': taluka.st_id.st_name
+            }
+        })
+    except IntegrityError:
+        return JsonResponse({'status': 'error', 'message': 'A taluka with this name already exists in this district'}, status=400)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Failed to add taluka: {str(e)}'}, status=500)
+
+def add_village(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
+    
+    village_name = request.POST.get('village_name')
+    taluka_id = request.POST.get('taluka_id')
+    if not village_name or not taluka_id:
+        return JsonResponse({'status': 'error', 'message': 'Village name and Taluka ID are required'}, status=400)
+    
+    village_name = village_name.strip()
+    if len(village_name) < 2:
+        return JsonResponse({'status': 'error', 'message': 'Village name must be at least 2 characters long'}, status=400)
+    
+    try:
+        taluka = get_object_or_404(TalukaHeaderAll, tal_id=taluka_id)
+        village = VillageHeaderAll.objects.create(
+            st_id=taluka.st_id,
+            dist_id=taluka.dist_id,
+            tal_id=taluka,
+            name=village_name,
+            status=True
+        )
+        return JsonResponse({
+            'status': 'success',
+            'village': {
+                'vil_id': village.vil_id,
+                'name': village.name,
+                'status': village.status,
+                'tal_id__tal_name': village.tal_id.tal_name,
+                'dist_id__dist_name': village.dist_id.dist_name,
+                'st_id__st_name': village.st_id.st_name
+            }
+        })
+    except IntegrityError:
+        return JsonResponse({'status': 'error', 'message': 'A village with this name already exists in this taluka'}, status=400)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Failed to add village: {str(e)}'}, status=500)
+
+def manage_locations(request):
+    return render(request, 'accounts/manage_locations.html', {})

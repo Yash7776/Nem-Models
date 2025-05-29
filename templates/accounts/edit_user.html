@@ -60,44 +60,6 @@
                value="{% for dept, projects in user.project_id.items %}{% if forloop.first %}{{ projects|join:',' }}{% endif %}{% endfor %}">
     </div>
     <div class="col-md-6">
-        <label for="st_id" class="form-label">State</label>
-        <select id="st_id" name="st_id" class="form-select">
-            <option value="">-- Select State --</option>
-            {% for state in states %}
-                <option value="{{ state.st_id }}" {% if user.st_id.st_id == state.st_id %}selected{% endif %}>
-                    {{ state.st_name }}
-                </option>
-            {% endfor %}
-        </select>
-    </div>
-    <div class="col-md-6">
-        <label for="dist_id" class="form-label">District</label>
-        <select id="dist_id" name="dist_id" class="form-select">
-            <option value="">-- Select District --</option>
-            {% if user.dist_id %}
-                <option value="{{ user.dist_id.dist_id }}" selected>{{ user.dist_id.dist_name }}</option>
-            {% endif %}
-        </select>
-    </div>
-    <div class="col-md-6">
-        <label for="tal_id" class="form-label">Taluka</label>
-        <select id="tal_id" name="tal_id" class="form-select">
-            <option value="">-- Select Taluka --</option>
-            {% if user.tal_id %}
-                <option value="{{ user.tal_id.tal_id }}" selected>{{ user.tal_id.tal_name }}</option>
-            {% endif %}
-        </select>
-    </div>
-    <div class="col-md-6">
-        <label for="vil_id" class="form-label">Village</label>
-        <select id="vil_id" name="vil_id" class="form-select">
-            <option value="">-- Select Village --</option>
-            {% if user.vil_id %}
-                <option value="{{ user.vil_id.vil_id }}" selected>{{ user.vil_id.name }}</option>
-            {% endif %}
-        </select>
-    </div>
-    <div class="col-md-6">
         <label for="profile" class="form-label">Profile</label>
         <select id="profile" name="profile" class="form-select">
             <option value="">-- None --</option>
@@ -190,76 +152,5 @@ function validateForm() {
     }
     return true;
 }
-
-$(document).ready(function() {
-    $('#st_id').change(function() {
-        const stateId = $(this).val();
-        if (stateId) {
-            $.ajax({
-                url: '/get-districts/' + stateId + '/',
-                type: 'GET',
-                success: function(data) {
-                    $('#dist_id').empty().append('<option value="">-- Select District --</option>');
-                    $('#tal_id').empty().append('<option value="">-- Select Taluka --</option>');
-                    $('#vil_id').empty().append('<option value="">-- Select Village --</option>');
-                    $.each(data.districts, function(index, district) {
-                        $('#dist_id').append('<option value="' + district.dist_id + '">' + district.dist_name + '</option>');
-                    });
-                },
-                error: function() {
-                    alert('Error fetching districts.');
-                }
-            });
-        } else {
-            $('#dist_id').empty().append('<option value="">-- Select District --</option>');
-            $('#tal_id').empty().append('<option value="">-- Select Taluka --</option>');
-            $('#vil_id').empty().append('<option value="">-- Select Village --</option>');
-        }
-    });
-
-    $('#dist_id').change(function() {
-        const districtId = $(this).val();
-        if (districtId) {
-            $.ajax({
-                url: '/get-talukas/' + districtId + '/',
-                type: 'GET',
-                success: function(data) {
-                    $('#tal_id').empty().append('<option value="">-- Select Taluka --</option>');
-                    $('#vil_id').empty().append('<option value="">-- Select Village --</option>');
-                    $.each(data.talukas, function(index, taluka) {
-                        $('#tal_id').append('<option value="' + taluka.tal_id + '">' + taluka.tal_name + '</option>');
-                    });
-                },
-                error: function() {
-                    alert('Error fetching talukas.');
-                }
-            });
-        } else {
-            $('#tal_id').empty().append('<option value="">-- Select Taluka --</option>');
-            $('#vil_id').empty().append('<option value="">-- Select Village --</option>');
-        }
-    });
-
-    $('#tal_id').change(function() {
-        const talukaId = $(this).val();
-        if (talukaId) {
-            $.ajax({
-                url: '/get-villages/' + talukaId + '/',
-                type: 'GET',
-                success: function(data) {
-                    $('#vil_id').empty().append('<option value="">-- Select Village --</option>');
-                    $.each(data.villages, function(index, village) {
-                        $('#vil_id').append('<option value="' + village.vil_id + '">' + village.name + '</option>');
-                    });
-                },
-                error: function() {
-                    alert('Error fetching villages.');
-                }
-            });
-        } else {
-            $('#vil_id').empty().append('<option value="">-- Select Village --</option>');
-        }
-    });
-});
 </script>
 {% endblock %}
