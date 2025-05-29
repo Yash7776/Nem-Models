@@ -2,7 +2,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.db import IntegrityError
 from django.core.exceptions import ValidationError
-from .models import User_header_all, Profile_header_all
+from django.http import JsonResponse
+from .models import User_header_all, Profile_header_all, StateHeaderAll, DistrictHeaderAll, TalukaHeaderAll, VillageHeaderAll, ProjectLocationDetailsAll
 
 def user_detail(request, username):
     user = get_object_or_404(User_header_all, username=username, line_no=0)
@@ -20,17 +21,17 @@ def assign_profile(request, username):
     user = get_object_or_404(User_header_all, username=username, line_no=0)
     profile_id = request.GET.get('profile_id')
     if not profile_id:
-        messages.error(request, "Please select a profile to assign Profile ID {profile_id} assigned successfully.")
-        return redirect('user_detail', user_id=user_id)
+        messages.error(request, "Please select a profile to assign.")
+        return redirect('user_detail', username=username)
     profile = get_object_or_404(Profile_header_all, profile_id=profile_id)
     try:
-        profile = User_header_all.objects.profile_id(profile_id)
+        user.assign_profile(profile)
         messages.success(request, f"Profile {profile_id} assigned successfully.")
     except ValidationError as e:
         messages.error(request, f"Failed to assign profile: {str(e)}")
     except IntegrityError as e:
         messages.error(request, "Failed to assign profile due to a database error. Please try again.")
-    return redirect('user_detail', profile_id=profile_id)
+    return redirect('user_detail', username=username)
 
 def assign_profile_from_edit(request, username):
     user = get_object_or_404(User_header_all, username=username, line_no=0)
@@ -66,6 +67,7 @@ def all_users(request):
 
 def create_user(request):
     profiles = Profile_header_all.objects.all()
+    states = StateHeaderAll.objects.filter(st_status=True)
     if request.method == 'POST':
         username = request.POST.get('username')
         full_name = request.POST.get('full_name')
@@ -76,17 +78,29 @@ def create_user(request):
         dept_id = request.POST.get('dept_id', '')
         project_ids = request.POST.get('project_ids', '')
         profile_id = request.POST.get('profile')
+        st_id = request.POST.get('st_id')
+        dist_id = request.POST.get('dist_id')
+        tal_id = request.POST.get('tal_id')
+        vil_id = request.POST.get('vil_id')
 
         existing_user = User_header_all.objects.filter(username=username).first()
         if existing_user:
             messages.error(request, "User Already Exists")
-            return redirect('create_user')
+            return render(request, 'accounts/create_user.html', {
+                'profiles': profiles,
+                'user_type_choices': User_header_all.USER_TYPE_CHOICES,
+                'states': states,
+            })
 
         if mobile_no:
             existing_mobile = User_header_all.objects.filter(mobile_no=mobile_no).first()
             if existing_mobile:
                 messages.error(request, f"Mobile number '{mobile_no}' is already taken by another user.")
-                return redirect('create_user')
+                return render(request, 'accounts/create_user.html', {
+                    'profiles': profiles,
+                    'user_type_choices': User_header_all.USER_TYPE_CHOICES,
+                    'states': states,
+                })
 
         user_id = User_header_all.get_or_assign_user_id(username)
 
@@ -107,8 +121,32 @@ def create_user(request):
                 profile_id=None,
                 project_id=project_id_dict,
                 user_type=int(user_type),
-                status=1
+                status=1,
+                st_id=StateHeaderAll.objects.get(st_id=st_id) if st_id else None,
+                dist_id=DistrictHeaderAll.objects.get(dist_id=dist_id) if dist_id else None,
+                tal_id=TalukaHeaderAll.objects.get(tal_id=tal_id) if tal_id else None,
+                vil_id=VillageHeaderAll.objects.get(vil_id=vil_id) if vil_id else None,
             )
+
+            # Validate location against project_id
+            if vil_id and project_id_dict:
+                project_ids = []
+                for projects in project_id_dict.values():
+                    project_ids.extend([int(pid) for pid in projects if pid.isdigit()])
+                if project_ids:
+                    valid_location = ProjectLocationDetailsAll.objects.filter(
+                        project_id__in=project_ids,
+                        vil_id=vil_id,
+                        status=True
+                    ).exists()
+                    if not valid_location:
+                        messages.error(request, "Selected village is not associated with the specified projects.")
+                        return render(request, 'accounts/create_user.html', {
+                            'profiles': profiles,
+                            'user_type_choices': User_header_all.USER_TYPE_CHOICES,
+                            'states': states,
+                        })
+
             user.full_clean()
             user.save()
 
@@ -120,26 +158,37 @@ def create_user(request):
                     messages.error(request, "Failed to assign profile due to a database error. Please try again.")
                     return redirect('user_detail', username=username)
 
+            messages.success(request, f"User {username} created successfully.")
             return redirect('user_detail', username=username)
 
         except ValidationError as e:
             for field, errors in e.message_dict.items():
                 for error in errors:
                     messages.error(request, f"{field.capitalize()}: {error}")
-            return redirect('create_user')
+            return render(request, 'accounts/create_user.html', {
+                'profiles': profiles,
+                'user_type_choices': User_header_all.USER_TYPE_CHOICES,
+                'states': states,
+            })
         except IntegrityError:
             messages.error(request, "User Already Exists")
-            return redirect('create_user')
+            return render(request, 'accounts/create_user.html', {
+                'profiles': profiles,
+                'user_type_choices': User_header_all.USER_TYPE_CHOICES,
+                'states': states,
+            })
 
     return render(request, 'accounts/create_user.html', {
         'profiles': profiles,
         'user_type_choices': User_header_all.USER_TYPE_CHOICES,
+        'states': states,
     })
 
 def edit_user(request, user_id):
     user = get_object_or_404(User_header_all, id=user_id)
     profiles = Profile_header_all.objects.all()
     assignments = User_header_all.objects.filter(user_id=user.user_id).order_by('line_no')
+    states = StateHeaderAll.objects.filter(st_status=True)
 
     if request.method == 'POST':
         full_name = request.POST.get('full_name')
@@ -151,6 +200,10 @@ def edit_user(request, user_id):
         dept_id = request.POST.get('dept_id', '')
         project_ids = request.POST.get('project_ids', '')
         profile_id = request.POST.get('profile')
+        st_id = request.POST.get('st_id')
+        dist_id = request.POST.get('dist_id')
+        tal_id = request.POST.get('tal_id')
+        vil_id = request.POST.get('vil_id')
 
         try:
             if mobile_no and mobile_no != user.mobile_no:
@@ -162,6 +215,7 @@ def edit_user(request, user_id):
                         'profiles': profiles,
                         'assignments': assignments,
                         'user_type_choices': User_header_all.USER_TYPE_CHOICES,
+                        'states': states,
                     })
 
             user.full_name = full_name
@@ -176,6 +230,31 @@ def edit_user(request, user_id):
 
             user.mobile_no = mobile_no
             user.profile_id = Profile_header_all.objects.get(id=profile_id) if profile_id else None
+            user.st_id = StateHeaderAll.objects.get(st_id=st_id) if st_id else None
+            user.dist_id = DistrictHeaderAll.objects.get(dist_id=dist_id) if dist_id else None
+            user.tal_id = TalukaHeaderAll.objects.get(tal_id=tal_id) if tal_id else None
+            user.vil_id = VillageHeaderAll.objects.get(vil_id=vil_id) if vil_id else None
+
+            # Validate location against project_id
+            if vil_id:
+                project_ids = []
+                for projects in user.project_id.values():
+                    project_ids.extend([int(pid) for pid in projects if pid.isdigit()])
+                if project_ids:
+                    valid_location = ProjectLocationDetailsAll.objects.filter(
+                        project_id__in=project_ids,
+                        vil_id=vil_id,
+                        status=True
+                    ).exists()
+                    if not valid_location:
+                        messages.error(request, "Selected village is not associated with the user's projects.")
+                        return render(request, 'accounts/edit_user.html', {
+                            'user': user,
+                            'profiles': profiles,
+                            'assignments': assignments,
+                            'user_type_choices': User_header_all.USER_TYPE_CHOICES,
+                            'states': states,
+                        })
 
             if user.username != username:
                 existing_user = User_header_all.objects.filter(username=username).exclude(id=user_id).first()
@@ -186,6 +265,7 @@ def edit_user(request, user_id):
                         'profiles': profiles,
                         'assignments': assignments,
                         'user_type_choices': User_header_all.USER_TYPE_CHOICES,
+                        'states': states,
                     })
 
                 User_header_all.objects.filter(user_id=user.user_id).update(username=username)
@@ -208,6 +288,7 @@ def edit_user(request, user_id):
                 'profiles': profiles,
                 'assignments': assignments,
                 'user_type_choices': User_header_all.USER_TYPE_CHOICES,
+                'states': states,
             })
 
     return render(request, 'accounts/edit_user.html', {
@@ -215,6 +296,7 @@ def edit_user(request, user_id):
         'profiles': profiles,
         'assignments': assignments,
         'user_type_choices': User_header_all.USER_TYPE_CHOICES,
+        'states': states,
     })
 
 def toggle_user_status(request, username):
@@ -222,7 +304,7 @@ def toggle_user_status(request, username):
     activate = request.GET.get('activate', 'false').lower() == 'true'
     if activate:
         User_header_all.objects.filter(user_id=user.user_id).update(status=1, deactivated_on=None)
-        messages.success(request.SUCCESS, f"User {username} has been activated.")
+        messages.success(request, f"User {username} has been activated.")
     else:
         User_header_all.objects.filter(user_id=user.user_id).update(status=0, deactivated_on=timezone.now())
         messages.success(request, f"User {username} has been deactivated.")
@@ -246,3 +328,15 @@ def users_summary(request):
         'user_data': user_data,
         'user_type_choices': User_header_all.USER_TYPE_CHOICES,
     })
+
+def get_districts(request, state_id):
+    districts = DistrictHeaderAll.objects.filter(st_id=state_id, status=True).values('dist_id', 'dist_name')
+    return JsonResponse({'districts': list(districts)})
+
+def get_talukas(request, district_id):
+    talukas = TalukaHeaderAll.objects.filter(dist_id=district_id, status=True).values('tal_id', 'tal_name')
+    return JsonResponse({'talukas': list(talukas)})
+
+def get_villages(request, taluka_id):
+    villages = VillageHeaderAll.objects.filter(tal_id=taluka_id, status=True).values('vil_id', 'name')
+    return JsonResponse({'villages': list(villages)})

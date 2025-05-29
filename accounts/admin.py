@@ -1,37 +1,76 @@
-from django import forms
 from django.contrib import admin
-from .models import Profile_header_all, User_header_all, UniqueIdHeaderAll
+from .models import (
+    StateHeaderAll, DistrictHeaderAll, TalukaHeaderAll, VillageHeaderAll,
+    ProjectLocationDetailsAll, User_header_all, Profile_header_all,
+    Department, Project, UniqueIdHeaderAll
+)
 
-class ProfileHeaderForm(forms.ModelForm):
-    class Meta:
-        model = Profile_header_all
-        fields = '__all__'
+@admin.register(StateHeaderAll)
+class StateHeaderAllAdmin(admin.ModelAdmin):
+    list_display = ('st_id', 'st_name', 'st_status', 'st_inserted_on')
+    search_fields = ('st_name',)
+    list_filter = ('st_status',)
+    ordering = ('st_name',)
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['profile_id'].required = False
+@admin.register(DistrictHeaderAll)
+class DistrictHeaderAllAdmin(admin.ModelAdmin):
+    list_display = ('dist_id', 'dist_name', 'st_id', 'status', 'inserted')
+    search_fields = ('dist_name',)
+    list_filter = ('status', 'st_id')
+    autocomplete_fields = ['st_id']
 
-class UserHeaderForm(forms.ModelForm):
-    class Meta:
-        model = User_header_all
-        fields = '__all__'
+@admin.register(TalukaHeaderAll)
+class TalukaHeaderAllAdmin(admin.ModelAdmin):
+    list_display = ('tal_id', 'tal_name', 'dist_id', 'st_id', 'status', 'inserted')
+    search_fields = ('tal_name',)
+    list_filter = ('status', 'dist_id', 'st_id')
+    autocomplete_fields = ['dist_id', 'st_id']
+
+@admin.register(VillageHeaderAll)
+class VillageHeaderAllAdmin(admin.ModelAdmin):
+    list_display = ('vil_id', 'name', 'tal_id', 'dist_id', 'st_id', 'status', 'inserted')
+    search_fields = ('name',)
+    list_filter = ('status', 'tal_id', 'dist_id', 'st_id')
+    autocomplete_fields = ['tal_id', 'dist_id', 'st_id']
+
+@admin.register(ProjectLocationDetailsAll)
+class ProjectLocationDetailsAllAdmin(admin.ModelAdmin):
+    list_display = ('pl_id', 'project_id', 'get_location_type', 'st_id', 'dist_id', 'tal_id', 'vil_id', 'status', 'inserted')
+    search_fields = ('project_id',)
+    list_filter = ('pl_location_type', 'status', 'st_id', 'dist_id', 'tal_id', 'vil_id')
+    autocomplete_fields = ['st_id', 'dist_id', 'tal_id', 'vil_id']
+
+    def get_location_type(self, obj):
+        return obj.get_pl_location_type_display()
+    get_location_type.short_description = 'Location Type'
+
+# Existing model registrations (if any)
+@admin.register(User_header_all)
+class UserHeaderAllAdmin(admin.ModelAdmin):
+    list_display = ('user_id', 'username', 'full_name', 'user_type', 'status', 'inserted_on')
+    search_fields = ('username', 'full_name', 'email')
+    list_filter = ('user_type', 'status')
+    autocomplete_fields = ['profile_id', 'st_id', 'dist_id', 'tal_id', 'vil_id']
 
 @admin.register(Profile_header_all)
-class ProfileHeaderAdmin(admin.ModelAdmin):
-    form = ProfileHeaderForm
-    list_display = ('profile_id', 'profile_name', 'p_status', 'pro_inserted_on', 'pro_deactivated_on')
-    ordering = ('profile_id',)
+class ProfileHeaderAllAdmin(admin.ModelAdmin):
+    list_display = ('profile_id', 'profile_name', 'p_status', 'pro_inserted_on')
+    search_fields = ('profile_id', 'profile_name')
+    list_filter = ('p_status',)
 
-@admin.register(User_header_all)
-class UserHeaderAdmin(admin.ModelAdmin):
-    form = UserHeaderForm
-    list_display = (
-        'id', 'user_id', 'username', 'full_name', 'email',
-        'mobile_no', 'line_no', 'profile_id', 'user_type', 'status', 'inserted_on', 'deactivated_on'
-    )
-    ordering = ('id',)
+@admin.register(Department)
+class DepartmentAdmin(admin.ModelAdmin):
+    list_display = ('dept_id', 'name')
+    search_fields = ('dept_id', 'name')
+
+@admin.register(Project)
+class ProjectAdmin(admin.ModelAdmin):
+    list_display = ('project_id', 'name', 'department')
+    search_fields = ('project_id', 'name')
+    list_filter = ('department',)
+    autocomplete_fields = ['department']
 
 @admin.register(UniqueIdHeaderAll)
 class UniqueIdHeaderAllAdmin(admin.ModelAdmin):
-    list_display = ('table_name', 'id_for', 'prefix', 'last_id', 'created_on', 'modified_on')
-    ordering = ('table_name',)
+    list_display = ('table_name', 'id_for', 'prefix', 'last_id', 'created_on')
+    search_fields = ('table_name', 'id_for')

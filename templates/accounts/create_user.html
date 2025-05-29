@@ -1,5 +1,5 @@
 {% extends 'accounts/base.html' %}
-{% block title %}Create New User{% endblock %}
+{% block title %}Create User{% endblock %}
 {% block content %}
 <h1 class="mb-4">Create New User</h1>
 
@@ -14,31 +14,28 @@
     </ul>
 {% endif %}
 
-<form method="post" class="row g-3" id="create-user-form" onsubmit="return validateForm()">
+<form method="post" action="{% url 'create_user' %}" class="row g-3 mb-4" id="create-user-form" onsubmit="return validateForm()">
     {% csrf_token %}
-    <div class="col-md-6">
-        <label for="username" class="form-label">Username</label>
-        <input type="text" id="username" name="username" class="form-control" required oninput="checkSpaces(this)">
-        <div id="username_error" class="invalid-feedback"></div>
-    </div>
     <div class="col-md-6">
         <label for="full_name" class="form-label">Full Name</label>
         <input type="text" id="full_name" name="full_name" class="form-control" required>
     </div>
     <div class="col-md-6">
         <label for="email" class="form-label">Email</label>
-        <input type="email" id="email" name="email" class="form-control" oninput="checkSpaces(this)">
-        <div id="email_error" class="invalid-feedback"></div>
+        <input type="email" id="email" name="email" class="form-control">
+    </div>
+    <div class="col-md-6">
+        <label for="username" class="form-label">Username</label>
+        <input type="text" id="username" name="username" class="form-control" required>
     </div>
     <div class="col-md-6">
         <label for="password" class="form-label">Password</label>
-        <input type="password" id="password" name="password" class="form-control" required oninput="checkSpaces(this)">
-        <div id="password_error" class="invalid-feedback"></div>
+        <input type="password" id="password" name="password" class="form-control" required>
     </div>
     <div class="col-md-6">
         <label for="mobile_no" class="form-label">Mobile No</label>
         <input type="text" id="mobile_no" name="mobile_no" class="form-control"
-               pattern="[0-9]{10}" title="Mobile number must be exactly 10 digits"
+               pattern="[0-9]{10}" title="Mobile number must be 10 digits"
                placeholder="e.g., 9876543210" oninput="validateMobileNo(this)">
         <div id="mobile_no_error" class="invalid-feedback"></div>
     </div>
@@ -59,7 +56,34 @@
         <input type="text" id="project_ids" name="project_ids" class="form-control" placeholder="e.g., 1,2,3">
     </div>
     <div class="col-md-6">
-        <label for="profile" class="form-label">Assign Profile</label>
+        <label for="st_id" class="form-label">State</label>
+        <select id="st_id" name="st_id" class="form-select">
+            <option value="">-- Select State --</option>
+            {% for state in states %}
+                <option value="{{ state.st_id }}">{{ state.st_name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-6">
+        <label for="dist_id" class="form-label">District</label>
+        <select id="dist_id" name="dist_id" class="form-select">
+            <option value="">-- Select District --</option>
+        </select>
+    </div>
+    <div class="col-md-6">
+        <label for="tal_id" class="form-label">Taluka</label>
+        <select id="tal_id" name="tal_id" class="form-select">
+            <option value="">-- Select Taluka --</option>
+        </select>
+    </div>
+    <div class="col-md-6">
+        <label for="vil_id" class="form-label">Village</label>
+        <select id="vil_id" name="vil_id" class="form-select">
+            <option value="">-- Select Village --</option>
+        </select>
+    </div>
+    <div class="col-md-6">
+        <label for="profile" class="form-label">Profile</label>
         <select id="profile" name="profile" class="form-select">
             <option value="">-- None --</option>
             {% for profile in profiles %}
@@ -72,35 +96,22 @@
     </div>
 </form>
 
-<script>
-function checkSpaces(input) {
-    const fieldId = input.id;
-    const errorDiv = document.getElementById(fieldId + "_error");
-    if (input.value && /\s/.test(input.value)) {
-        input.classList.add('is-invalid');
-        errorDiv.textContent = `${fieldId.charAt(0).toUpperCase() + fieldId.slice(1)} cannot contain spaces.`;
-    } else {
-        input.classList.remove('is-invalid');
-        errorDiv.textContent = "";
-    }
-}
+<p>
+    <a href="{% url 'all_users' %}" class="btn btn-secondary">Back to All Users</a>
+</p>
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
 function validateMobileNo(input) {
     const errorDiv = document.getElementById('mobile_no_error');
-    let value = input.value;
-    value = value.replace(/\D/g, '');
-    input.value = value;
-    if (value) {
-        if (value.length !== 10) {
-            input.classList.add('is-invalid');
-            errorDiv.textContent = 'Mobile number must be exactly 10 digits long.';
-        } else if (!/^[6-9]/.test(value)) {
-            input.classList.add('is-invalid');
-            errorDiv.textContent = 'Mobile number must start with 6, 7, 8, or 9.';
-        } else {
-            input.classList.remove('is-invalid');
-            errorDiv.textContent = '';
-        }
+    const value = input.value;
+    const digits = value.replace(/\D/g, '');
+    if (value && digits.length !== 10) {
+        input.classList.add('is-invalid');
+        errorDiv.textContent = 'Mobile number must be exactly 10 digits long.';
+    } else if (value && !/^[6-9]/.test(digits)) {
+        input.classList.add('is-invalid');
+        errorDiv.textContent = 'Mobile number must start with 6, 7, 8, or 9.';
     } else {
         input.classList.remove('is-invalid');
         errorDiv.textContent = '';
@@ -108,16 +119,90 @@ function validateMobileNo(input) {
 }
 
 function validateForm() {
-    let isValid = true;
-    ['username', 'password', 'email'].forEach(id => {
-        const input = document.getElementById(id);
-        checkSpaces(input);
-        if (input.classList.contains('is-invalid')) isValid = false;
-    });
     const mobileInput = document.getElementById('mobile_no');
-    validateMobileNo(mobileInput);
-    if (mobileInput.classList.contains('is-invalid')) isValid = false;
-    return isValid;
+    const value = mobileInput.value;
+    const digits = value.replace(/\D/g, '');
+    if (value && digits.length !== 10) {
+        mobileInput.classList.add('is-invalid');
+        document.getElementById('mobile_no_error').textContent = 'Mobile number must be exactly 10 digits long.';
+        return false;
+    }
+    if (value && !/^[6-9]/.test(digits)) {
+        document.getElementById('mobile_no_error').textContent = 'Mobile number must start with 6, 7, 8, or 9.';
+        return false;
+    }
+    return true;
 }
+
+$(document).ready(function() {
+    $('#st_id').change(function() {
+        const stateId = $(this).val();
+        if (stateId) {
+            $.ajax({
+                url: '/get-districts/' + stateId + '/',
+                type: 'GET',
+                success: function(data) {
+                    $('#dist_id').empty().append('<option value="">-- Select District --</option>');
+                    $('#tal_id').empty().append('<option value="">-- Select Taluka --</option>');
+                    $('#vil_id').empty().append('<option value="">-- Select Village --</option>');
+                    $.each(data.districts, function(index, district) {
+                        $('#dist_id').append('<option value="' + district.dist_id + '">' + district.dist_name + '</option>');
+                    });
+                },
+                error: function() {
+                    alert('Error fetching districts.');
+                }
+            });
+        } else {
+            $('#dist_id').empty().append('<option value="">-- Select District --</option>');
+            $('#tal_id').empty().append('<option value="">-- Select Taluka --</option>');
+            $('#vil_id').empty().append('<option value="">-- Select Village --</option>');
+        }
+    });
+
+    $('#dist_id').change(function() {
+        const districtId = $(this).val();
+        if (districtId) {
+            $.ajax({
+                url: '/get-talukas/' + districtId + '/',
+                type: 'GET',
+                success: function(data) {
+                    $('#tal_id').empty().append('<option value="">-- Select Taluka --</option>');
+                    $('#vil_id').empty().append('<option value="">-- Select Village --</option>');
+                    $.each(data.talukas, function(index, taluka) {
+                        $('#tal_id').append('<option value="' + taluka.tal_id + '">' + taluka.tal_name + '</option>');
+                    });
+                },
+                error: function() {
+                    alert('Error fetching talukas.');
+                }
+            });
+        } else {
+            $('#tal_id').empty().append('<option value="">-- Select Taluka --</option>');
+            $('#vil_id').empty().append('<option value="">-- Select Village --</option>');
+        }
+    });
+
+    $('#tal_id').change(function() {
+        const talukaId = $(this).val();
+        if (talukaId) {
+            $.ajax({
+                url: '/get-villages/' + talukaId + '/',
+                type: 'GET',
+                success: function(data) {
+                    $('#vil_id').empty().append('<option value="">-- Select Village --</option>');
+                    $.each(data.villages, function(index, village) {
+                        $('#vil_id').append('<option value="' + village.vil_id + '">' + village.name + '</option>');
+                    });
+                },
+                error: function() {
+                    alert('Error fetching villages.');
+                }
+            });
+        } else {
+            $('#vil_id').empty().append('<option value="">-- Select Village --</option>');
+        }
+    });
+});
 </script>
 {% endblock %}

@@ -5,6 +5,71 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.postgres.fields import ArrayField
 import re
 
+class StateHeaderAll(models.Model):
+    st_id = models.AutoField(primary_key=True)
+    st_name = models.CharField(max_length=100)
+    st_inserted_on = models.DateTimeField(auto_now_add=True)
+    st_status = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.st_name
+
+class DistrictHeaderAll(models.Model):
+    dist_id = models.AutoField(primary_key=True)
+    st_id = models.ForeignKey(StateHeaderAll, on_delete=models.CASCADE)
+    dist_name = models.CharField(max_length=100)
+    inserted = models.DateTimeField(auto_now_add=True)
+    status = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.dist_name
+
+class TalukaHeaderAll(models.Model):
+    tal_id = models.AutoField(primary_key=True)
+    dist_id = models.ForeignKey(DistrictHeaderAll, on_delete=models.CASCADE)
+    st_id = models.ForeignKey(StateHeaderAll, on_delete=models.CASCADE)
+    tal_name = models.CharField(max_length=100)
+    inserted = models.DateTimeField(auto_now_add=True)
+    status = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.tal_name
+
+class VillageHeaderAll(models.Model):
+    vil_id = models.AutoField(primary_key=True)
+    tal_id = models.ForeignKey(TalukaHeaderAll, on_delete=models.CASCADE)
+    dist_id = models.ForeignKey(DistrictHeaderAll, on_delete=models.CASCADE)
+    st_id = models.ForeignKey(StateHeaderAll, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    inserted = models.DateTimeField(auto_now_add=True)
+    status = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+class ProjectLocationDetailsAll(models.Model):
+    LOCATION_TYPE_CHOICES = (
+        (1, 'State'),
+        (2, 'District'),
+        (3, 'Taluka'),
+        (4, 'Village'),
+    )
+
+    pl_id = models.AutoField(primary_key=True)
+    project_id = models.IntegerField()
+    pl_location_type = models.IntegerField(choices=LOCATION_TYPE_CHOICES)
+
+    st_id = models.ForeignKey(StateHeaderAll, on_delete=models.CASCADE, null=True, blank=True)
+    dist_id = models.ForeignKey(DistrictHeaderAll, on_delete=models.CASCADE, null=True, blank=True)
+    tal_id = models.ForeignKey(TalukaHeaderAll, on_delete=models.CASCADE, null=True, blank=True)
+    vil_id = models.ForeignKey(VillageHeaderAll, on_delete=models.CASCADE, null=True, blank=True)
+
+    inserted = models.DateTimeField(auto_now_add=True)
+    status = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"Project {self.project_id} - Type {self.get_pl_location_type_display()}"
+
 class Department(models.Model):
     dept_id = models.CharField(max_length=20, unique=True)
     name = models.CharField(max_length=100)
@@ -21,7 +86,7 @@ class Project(models.Model):
         return self.project_id
 
 class Profile_header_all(models.Model):
-    profile_id = models.CharField(max_length=20, unique=True)
+    profile_id = models.CharField(max_length=20, unique=True,blank=True,null=True)
     profile_name = models.CharField(max_length=100)
     pro_form_ids = ArrayField(models.CharField(), default=list, blank=True, help_text="List of accessible Form IDs like ['F_MAN_001', 'F_MAIN_002']")
     pro_process_ids = ArrayField(models.CharField(), default=list, blank=True, help_text="List of accessible Process IDs like ['P_MAN_0001', 'P_DOC_0002']")
@@ -156,6 +221,10 @@ class User_header_all(models.Model):
     status = models.IntegerField(choices=STATUS_CHOICES, default=1)
     inserted_on = models.DateTimeField(auto_now_add=True)
     deactivated_on = models.DateTimeField(null=True, blank=True)
+    st_id = models.ForeignKey(StateHeaderAll, on_delete=models.SET_NULL, null=True, blank=True)
+    dist_id = models.ForeignKey(DistrictHeaderAll, on_delete=models.SET_NULL, null=True, blank=True)
+    tal_id = models.ForeignKey(TalukaHeaderAll, on_delete=models.SET_NULL, null=True, blank=True)
+    vil_id = models.ForeignKey(VillageHeaderAll, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         unique_together = ('user_id', 'line_no')
@@ -214,7 +283,11 @@ class User_header_all(models.Model):
                 user_type=self.user_type,
                 status=1,
                 inserted_on=timezone.now(),
-                deactivated_on=None
+                deactivated_on=None,
+                st_id=self.st_id,
+                dist_id=self.dist_id,
+                tal_id=self.tal_id,
+                vil_id=self.vil_id
             )
 
     def set_profile_active(self, line_no, active=True):
@@ -245,7 +318,11 @@ class User_header_all(models.Model):
                 'user_type': self.user_type,
                 'status': 1,
                 'inserted_on': timezone.now(),
-                'deactivated_on': None
+                'deactivated_on': None,
+                'st_id': self.st_id,
+                'dist_id': self.dist_id,
+                'tal_id': self.tal_id,
+                'vil_id': self.vil_id
             }
         )
         if default_assignment.profile_id:
