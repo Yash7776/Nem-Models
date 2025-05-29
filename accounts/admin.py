@@ -65,7 +65,7 @@ class DepartmentAdmin(admin.ModelAdmin):
 
 @admin.register(Project)
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ('project_id', 'name', 'department')
+    list_display = ('project_id', 'project_name', 'department')
     search_fields = ('project_id', 'name')
     list_filter = ('department',)
     autocomplete_fields = ['department']

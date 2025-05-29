@@ -56,7 +56,8 @@ class ProjectLocationDetailsAll(models.Model):
     )
 
     pl_id = models.AutoField(primary_key=True)
-    project_id = models.IntegerField()
+    project_id = models.ForeignKey('Project',on_delete=models.SET_NULL,null=True,blank=True,related_name='project_assighment'
+    )
     pl_location_type = models.IntegerField(choices=LOCATION_TYPE_CHOICES)
 
     st_id = models.ForeignKey(StateHeaderAll, on_delete=models.CASCADE, null=True, blank=True)
@@ -78,12 +79,66 @@ class Department(models.Model):
         return self.dept_id
 
 class Project(models.Model):
-    project_id = models.CharField(max_length=20, unique=True)
-    department = models.ForeignKey(Department, on_delete=models.CASCADE)
-    name = models.CharField(max_length=100)
+    # Choices for Yes/No dropdown
+    YES_NO_CHOICES = [
+        ('Yes', 'Yes'),
+        ('No', 'No'),
+    ]
+
+    project_id = models.CharField(max_length=20, unique=True, blank=True)  # Changed from AutoField
+    project_name = models.CharField(max_length=100)
+    project_description = models.TextField(blank=True)
+    display_order = models.IntegerField(default=0)
+    project_details_KM = models.CharField(max_length=100)
+    project_status = models.IntegerField(choices=[(0, 'Suspend'), (1, 'Active')], default=1)
+    project_type = models.CharField(max_length=100)
+    project_admin_name = models.CharField(max_length=100)
+    Project_reg_contractors = models.PositiveIntegerField(default=0)
+    project_admins_users = models.PositiveIntegerField(default=0)
+    from_KM = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    to_KM = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, null=True, blank=True, related_name='projects')
+    step_statuses = models.JSONField(default=dict, blank=True)
+    survey_properties = models.CharField(max_length=3, choices=YES_NO_CHOICES, default='Yes')
+    field_survey = models.CharField(max_length=3, choices=YES_NO_CHOICES, default='No')
+
+    class Meta:
+        ordering = ['display_order', 'project_name']
 
     def __str__(self):
-        return self.project_id
+        return f"{self.project_id} - {self.project_name}"
+
+    def save(self, *args, **kwargs):
+        if not self.project_id:
+            unique_id, _ = UniqueIdHeaderAll.objects.get_or_create(
+                table_name='project',
+                id_for='project_id',
+                defaults={
+                    'prefix': 'PRO',
+                    'last_id': '',
+                    'created_on': timezone.now(),
+                    'modified_on': timezone.now()
+                }
+            )
+            self.project_id = unique_id.get_next_id()
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_or_assign_project_id(cls, project_name):
+        existing_project = cls.objects.filter(project_name=project_name).first()
+        if existing_project:
+            return existing_project.project_id
+        unique_id, _ = UniqueIdHeaderAll.objects.get_or_create(
+            table_name='project',
+            id_for='project_id',
+            defaults={
+                'prefix': 'PRO',
+                'last_id': '',
+                'created_on': timezone.now(),
+                'modified_on': timezone.now()
+            }
+        )
+        return unique_id.get_next_id()
 
 class Profile_header_all(models.Model):
     profile_id = models.CharField(max_length=20, unique=True,blank=True,null=True)
