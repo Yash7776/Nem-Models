@@ -6,8 +6,9 @@ from django.http import JsonResponse
 from django.db.models import Q
 from .models import (
     User_header_all, Profile_header_all, StateHeaderAll, DistrictHeaderAll,
-    TalukaHeaderAll, VillageHeaderAll
+    TalukaHeaderAll, VillageHeaderAll, Project, ProjectLocationDetailsAll
 )
+from django.utils import timezone
 
 def user_detail(request, username):
     user = get_object_or_404(User_header_all, username=username, line_no=0)
@@ -266,6 +267,87 @@ def users_summary(request):
         'user_type_choices': User_header_all.USER_TYPE_CHOICES,
     })
 
+def manage_locations(request):
+    projects = Project.objects.filter(project_status=1)  # Only active projects
+    return render(request, 'accounts/manage_locations.html', {
+        'projects': projects,
+        'location_type_choices': ProjectLocationDetailsAll.LOCATION_TYPE_CHOICES,
+    })
+
+def save_project_location(request):
+    if request.method != 'POST':
+        return redirect('manage_locations')
+
+    project_id = request.POST.get('project_id')
+    pl_location_type = request.POST.get('pl_location_type')
+    state_id = request.POST.get('state_id')
+    district_id = request.POST.get('district_id')
+    taluka_id = request.POST.get('taluka_id')
+    village_id = request.POST.get('village_id')
+
+    if not project_id or not pl_location_type:
+        messages.error(request, "Project ID and Location Type are required.")
+        return redirect('manage_locations')
+
+    try:
+        project = get_object_or_404(Project, project_id=project_id)
+        pl_location_type = int(pl_location_type)
+
+        # Initialize location fields
+        location_data = {
+            'project_id': project,
+            'pl_location_type': pl_location_type,
+            'status': True,
+        }
+
+        # Set the appropriate location ID based on pl_location_type
+        if pl_location_type == 1:  # State
+            if not state_id:
+                messages.error(request, "State ID is required for State location type.")
+                return redirect('manage_locations')
+            location_data['st_id'] = get_object_or_404(StateHeaderAll, st_id=state_id)
+        elif pl_location_type == 2:  # District
+            if not district_id:
+                messages.error(request, "District ID is required for District location type.")
+                return redirect('manage_locations')
+            district = get_object_or_404(DistrictHeaderAll, dist_id=district_id)
+            location_data['st_id'] = district.st_id
+            location_data['dist_id'] = district
+        elif pl_location_type == 3:  # Taluka
+            if not taluka_id:
+                messages.error(request, "Taluka ID is required for Taluka location type.")
+                return redirect('manage_locations')
+            taluka = get_object_or_404(TalukaHeaderAll, tal_id=taluka_id)
+            location_data['st_id'] = taluka.st_id
+            location_data['dist_id'] = taluka.dist_id
+            location_data['tal_id'] = taluka
+        elif pl_location_type == 4:  # Village
+            if not village_id:
+                messages.error(request, "Village ID is required for Village location type.")
+                return redirect('manage_locations')
+            village = get_object_or_404(VillageHeaderAll, vil_id=village_id)
+            location_data['st_id'] = village.st_id
+            location_data['dist_id'] = village.dist_id
+            location_data['tal_id'] = village.tal_id
+            location_data['vil_id'] = village
+        else:
+            messages.error(request, "Invalid location type.")
+            return redirect('manage_locations')
+
+        try:
+            project_location = ProjectLocationDetailsAll.objects.create(**location_data)
+            project_location.full_clean()
+            project_location.save()
+            messages.success(request, "Project location saved successfully.")
+        except (ValidationError, IntegrityError) as e:
+            messages.error(request, f"Failed to save project location: {str(e)}")
+        
+        return redirect('manage_locations')
+
+    except Exception as e:
+        messages.error(request, f"Error saving project location: {str(e)}")
+        return redirect('manage_locations')
+
 def get_districts(request, state_id):
     districts = DistrictHeaderAll.objects.filter(st_id=state_id, status=True).values('dist_id', 'dist_name')
     return JsonResponse({'districts': list(districts)})
@@ -467,6 +549,3 @@ def add_village(request):
         return JsonResponse({'status': 'error', 'message': 'A village with this name already exists in this taluka'}, status=400)
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': f'Failed to add village: {str(e)}'}, status=500)
-
-def manage_locations(request):
-    return render(request, 'accounts/manage_locations.html', {})

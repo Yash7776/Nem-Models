@@ -15,6 +15,7 @@ urlpatterns = [
     path('get-talukas/<int:district_id>/', views.get_talukas, name='get_talukas'),
     path('get-villages/<int:taluka_id>/', views.get_villages, name='get_villages'),
     path('manage-locations/', views.manage_locations, name='manage_locations'),
+    path('save-project-location/', views.save_project_location, name='save_project_location'),
     path('search-states/', views.search_states, name='search_states'),
     path('search-districts/', views.search_districts, name='search_districts'),
     path('search-talukas/', views.search_talukas, name='search_talukas'),
