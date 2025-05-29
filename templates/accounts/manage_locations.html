@@ -37,6 +37,34 @@
     <a href="{% url 'all_users' %}" class="btn btn-secondary">Back to All Users</a>
 </p>
 
+<style>
+    .search-results {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    .search-results li {
+        padding: 8px 12px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+    }
+    .search-results li:last-child {
+        border-bottom: none;
+    }
+    .search-results li:hover {
+        background-color: #f8f9fa;
+    }
+    .add-item::before {
+        content: "+ ";
+        color: #007bff;
+        font-weight: bold;
+    }
+</style>
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 // Function to get CSRF token from cookies
@@ -90,20 +118,19 @@ $(document).ready(function() {
                 type: 'GET',
                 data: { query: query },
                 success: function(data) {
-                    let html = '';
+                    let html = '<ul class="search-results">';
                     if (data.has_results) {
-                        html = '<table class="table table-striped"><thead><tr><th>ID</th><th>Name</th><th>Status</th></tr></thead><tbody>';
                         $.each(data.states, function(index, state) {
-                            html += `<tr class="state-row" data-id="${state.st_id}" data-name="${state.st_name}">
-                                <td>${state.st_id}</td>
-                                <td>${state.st_name}</td>
-                                <td>${state.st_status ? 'Active' : 'Inactive'}</td>
-                            </tr>`;
+                            html += `<li class="state-row" data-id="${state.st_id}" data-name="${state.st_name}">
+                                ${state.st_name}
+                            </li>`;
                         });
-                        html += '</tbody></table>';
-                    } else {
-                        html = `<button class="btn btn-primary add-state-btn" data-name="${query}">Add "${query}" as a new State</button>`;
                     }
+                    // Always add the "Add" option, even if there are results
+                    html += `<li class="add-item add-state-btn" data-name="${query}">
+                        Add "${query}" as a new State
+                    </li>`;
+                    html += '</ul>';
                     $('#state_results').html(html);
 
                     // Add click handler for state rows
@@ -167,21 +194,18 @@ $(document).ready(function() {
                 type: 'GET',
                 data: { query: query, state_id: selectedStateId },
                 success: function(data) {
-                    let html = '';
+                    let html = '<ul class="search-results">';
                     if (data.has_results) {
-                        html = '<table class="table table-striped"><thead><tr><th>ID</th><th>Name</th><th>State</th><th>Status</th></tr></thead><tbody>';
                         $.each(data.districts, function(index, district) {
-                            html += `<tr class="district-row" data-id="${district.dist_id}" data-name="${district.dist_name}">
-                                <td>${district.dist_id}</td>
-                                <td>${district.dist_name}</td>
-                                <td>${district.st_id__st_name}</td>
-                                <td>${district.status ? 'Active' : 'Inactive'}</td>
-                            </tr>`;
+                            html += `<li class="district-row" data-id="${district.dist_id}" data-name="${district.dist_name}">
+                                ${district.dist_name}
+                            </li>`;
                         });
-                        html += '</tbody></table>';
-                    } else {
-                        html = `<button class="btn btn-primary add-district-btn" data-name="${query}">Add "${query}" as a new District</button>`;
                     }
+                    html += `<li class="add-item add-district-btn" data-name="${query}">
+                        Add "${query}" as a new District
+                    </li>`;
+                    html += '</ul>';
                     $('#district_results').html(html);
 
                     // Add click handler for district rows
@@ -245,22 +269,18 @@ $(document).ready(function() {
                 type: 'GET',
                 data: { query: query, district_id: selectedDistrictId },
                 success: function(data) {
-                    let html = '';
+                    let html = '<ul class="search-results">';
                     if (data.has_results) {
-                        html = '<table class="table table-striped"><thead><tr><th>ID</th><th>Name</th><th>District</th><th>State</th><th>Status</th></tr></thead><tbody>';
                         $.each(data.talukas, function(index, taluka) {
-                            html += `<tr class="tehsil-row" data-id="${taluka.tal_id}" data-name="${taluka.tal_name}">
-                                <td>${taluka.tal_id}</td>
-                                <td>${taluka.tal_name}</td>
-                                <td>${taluka.dist_id__dist_name}</td>
-                                <td>${taluka.st_id__st_name}</td>
-                                <td>${taluka.status ? 'Active' : 'Inactive'}</td>
-                            </tr>`;
+                            html += `<li class="tehsil-row" data-id="${taluka.tal_id}" data-name="${taluka.tal_name}">
+                                ${taluka.tal_name}
+                            </li>`;
                         });
-                        html += '</tbody></table>';
-                    } else {
-                        html = `<button class="btn btn-primary add-tehsil-btn" data-name="${query}">Add "${query}" as a new Tehsil</button>`;
                     }
+                    html += `<li class="add-item add-tehsil-btn" data-name="${query}">
+                        Add "${query}" as a new Tehsil
+                    </li>`;
+                    html += '</ul>';
                     $('#tehsil_results').html(html);
 
                     // Add click handler for tehsil rows
@@ -323,23 +343,18 @@ $(document).ready(function() {
                 type: 'GET',
                 data: { query: query, taluka_id: selectedTalukaId },
                 success: function(data) {
-                    let html = '';
+                    let html = '<ul class="search-results">';
                     if (data.has_results) {
-                        html = '<table class="table table-striped"><thead><tr><th>ID</th><th>Name</th><th>Tehsil</th><th>District</th><th>State</th><th>Status</th></tr></thead><tbody>';
                         $.each(data.villages, function(index, village) {
-                            html += `<tr class="village-row" data-id="${village.vil_id}" data-name="${village.name}">
-                                <td>${village.vil_id}</td>
-                                <td>${village.name}</td>
-                                <td>${village.tal_id__tal_name}</td>
-                                <td>${village.dist_id__dist_name}</td>
-                                <td>${village.st_id__st_name}</td>
-                                <td>${village.status ? 'Active' : 'Inactive'}</td>
-                            </tr>`;
+                            html += `<li class="village-row" data-id="${village.vil_id}" data-name="${village.name}">
+                                ${village.name}
+                            </li>`;
                         });
-                        html += '</tbody></table>';
-                    } else {
-                        html = `<button class="btn btn-primary add-village-btn" data-name="${query}">Add "${query}" as a new Village</button>`;
                     }
+                    html += `<li class="add-item add-village-btn" data-name="${query}">
+                        Add "${query}" as a new Village
+                    </li>`;
+                    html += '</ul>';
                     $('#village_results').html(html);
 
                     // Add click handler for village rows
