@@ -1,79 +1,128 @@
-```html
 {% extends 'accounts/base.html' %}
 {% block title %}{{ user.username }}'s Profile{% endblock %}
 {% block content %}
-<h1 class="mb-4">{{ user.full_name }} ({{ user.username }})</h1>
-<div class="card mb-4">
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white border-bottom-0 py-3">
+        <h1 class="h4 mb-0">
+            <i class="bi bi-person-circle text-primary me-2"></i>{{ user.full_name }} ({{ user.username }})
+        </h1>
+    </div>
     <div class="card-body">
-        <h5 class="card-title">User Details</h5>
-        <p class="card-text"><strong>User Type:</strong> {{ user.get_user_type_display }}</p>
-        <p class="card-text"><strong>Mobile:</strong> {{ user.mobile_no|default:"--" }}</p>
-        <p class="card-text"><strong>Project IDs:</strong>
-            {% for dept, projects in user.project_id.items %}
-                {{ dept }}: {{ projects|join:',' }}{% if not forloop.last %}; {% endif %}
-            {% empty %}
-                --
-            {% endfor %}
-        </p>
-        <p class="card-text"><strong>Status:</strong> {{ user.get_status_display }}</p>
-        <p class="card-text"><strong>Inserted On:</strong> {{ user.inserted_on }}</p>
-        <p class="card-text"><strong>Deactivated On:</strong> {{ user.deactivated_on|default:"--" }}</p>
+        <div class="row">
+            <div class="col-md-6">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span class="fw-bold">User Type:</span>
+                        <span>{{ user.get_user_type_display }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span class="fw-bold">Mobile:</span>
+                        <span>{{ user.mobile_no|default:"--" }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span class="fw-bold">Status:</span>
+                        <span class="badge bg-{% if user.status %}success{% else %}danger{% endif %}">
+                            {{ user.get_status_display }}
+                        </span>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span class="fw-bold">Inserted On:</span>
+                        <span>{{ user.inserted_on }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span class="fw-bold">Deactivated On:</span>
+                        <span>{{ user.deactivated_on|default:"--" }}</span>
+                    </li>
+                    <li class="list-group-item">
+                        <span class="fw-bold">Project IDs:</span>
+                        <div class="mt-2">
+                            {% for dept, projects in user.project_id.items %}
+                                <span class="badge bg-light text-dark me-1">{{ dept }}: {{ projects|join:',' }}</span>
+                            {% empty %}
+                                --
+                            {% endfor %}
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
     </div>
 </div>
 
-{% if messages %}
-    <ul class="list-unstyled">
-        {% for message in messages %}
-            <li class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </li>
-        {% endfor %}
-    </ul>
-{% endif %}
-
-<div class="mb-4">
+<div class="d-flex justify-content-between mb-4">
     {% if user.status %}
-        <a href="{% url 'toggle_user_status' user.username %}?activate=false" class="btn btn-danger">Deactivate User</a>
+        <a href="{% url 'toggle_user_status' user.username %}?activate=false" class="btn btn-danger">
+            <i class="bi bi-person-x me-1"></i>Deactivate User
+        </a>
     {% else %}
-        <a href="{% url 'toggle_user_status' user.username %}?activate=true" class="btn btn-success">Activate User</a>
+        <a href="{% url 'toggle_user_status' user.username %}?activate=true" class="btn btn-success">
+            <i class="bi bi-person-check me-1"></i>Activate User
+        </a>
     {% endif %}
+    <a href="{% url 'edit_user' user.id %}" class="btn btn-primary">
+        <i class="bi bi-pencil-square me-1"></i>Edit User
+    </a>
 </div>
 
-<h2 class="mb-3">Assigned Profiles</h2>
-<ul class="list-group mb-4">
-    {% for assignment in assignments %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-            Profile ID: {{ assignment.profile_id.profile_id|default:"--" }} (Line: {{ assignment.line_no }}, 
-            Status: {{ assignment.profile_id.p_status|yesno:"Active,Inactive" }})
-            {% if assignment.profile_id %}
-            <a href="{% url 'toggle_profile_status' user.username assignment.line_no %}?is_active={% if assignment.profile_id.p_status %}false{% else %}true{% endif %}" 
-               class="btn btn-sm {% if assignment.profile_id.p_status %}btn-warning{% else %}btn-success{% endif %}">
-                {% if assignment.profile_id.p_status %}Deactivate{% else %}Activate{% endif %}
-            </a>
-            {% endif %}
-        </li>
-    {% empty %}
-        <li class="list-group-item">No profiles assigned</li>
-    {% endfor %}
-</ul>
-
-<h2 class="mb-3">Assign New Profile</h2>
-<form method="get" action="{% url 'assign_profile' user.username %}" class="row g-3">
-    <div class="col-md-4">
-        <select name="profile_id" class="form-select">
-            {% for profile in profiles %}
-                <option value="{{ profile.profile_id }}">{{ profile.profile_name }}</option>
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white border-bottom-0 py-3">
+        <h2 class="h6 mb-0 text-muted">Assigned Profiles</h2>
+    </div>
+    <div class="card-body">
+        <ul class="list-group list-group-flush">
+            {% for assignment in assignments %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="fw-bold">Profile ID: {{ assignment.profile_id.profile_id|default:"--" }}</span>
+                        <span class="text-muted ms-3">(Line: {{ assignment.line_no }})</span>
+                        <span class="badge bg-{% if assignment.profile_id.p_status %}success{% else %}danger{% endif %} ms-2">
+                            {{ assignment.profile_id.p_status|yesno:"Active,Inactive" }}
+                        </span>
+                    </div>
+                    {% if assignment.profile_id %}
+                    <a href="{% url 'toggle_profile_status' user.username assignment.line_no %}?is_active={% if assignment.profile_id.p_status %}false{% else %}true{% endif %}" 
+                       class="btn btn-sm {% if assignment.profile_id.p_status %}btn-outline-warning{% else %}btn-outline-success{% endif %}">
+                        <i class="bi bi-{% if assignment.profile_id.p_status %}x-circle{% else %}check-circle{% endif %} me-1"></i>
+                        {% if assignment.profile_id.p_status %}Deactivate{% else %}Activate{% endif %}
+                    </a>
+                    {% endif %}
+                </li>
+            {% empty %}
+                <li class="list-group-item text-center text-muted py-3">No profiles assigned</li>
             {% endfor %}
-        </select>
+        </ul>
     </div>
-    <div class="col-md-2">
-        <button type="submit" class="btn btn-primary w-100">Assign</button>
-    </div>
-</form>
+</div>
 
-<p class="mt-4">
-    <a href="{% url 'all_users' %}" class="btn btn-secondary">View All Users (Table Format)</a>
-</p>
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-bottom-0 py-3">
+        <h2 class="h6 mb-0 text-muted">Assign New Profile</h2>
+    </div>
+    <div class="card-body">
+        <form method="get" action="{% url 'assign_profile' user.username %}" class="row g-3">
+            <div class="col-md-8">
+                <select name="profile_id" class="form-select">
+                    {% for profile in profiles %}
+                        <option value="{{ profile.profile_id }}">{{ profile.profile_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-plus-circle me-1"></i>Assign
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a href="{% url 'all_users' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>View All Users (Table Format)
+    </a>
+</div>
 {% endblock %}
-```

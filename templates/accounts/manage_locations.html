@@ -1,7 +1,7 @@
 {% extends 'accounts/base.html' %}
 {% block title %}Manage Locations{% endblock %}
 {% block content %}
-<h1 class="mb-4">Manage Locations</h1>
+<h1 class="mb-4">Project Combination</h1>
 
 <form method="post" action="{% url 'save_project_location' %}" class="row g-3 mb-4" id="location-form">
     {% csrf_token %}
@@ -10,6 +10,28 @@
     <input type="hidden" id="selected_district_id" name="district_id">
     <input type="hidden" id="selected_taluka_id" name="taluka_id">
     <input type="hidden" id="selected_village_id" name="village_id">
+
+    <!-- Project ID -->
+    <div class="col-md-6">
+        <label for="project_id" class="form-label">Project ID</label>
+        <select id="project_id" name="project_id" class="form-select" required>
+            <option value="">-- Select Project --</option>
+            {% for project in projects %}
+                <option value="{{ project.project_id }}">{{ project.project_name }} ({{ project.project_id }})</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Location Type -->
+    <div class="col-md-6">
+        <label for="pl_location_type" class="form-label">Location Type</label>
+        <select id="pl_location_type" name="pl_location_type" class="form-select" required>
+            <option value="">-- Select Location Type --</option>
+            {% for value, label in location_type_choices %}
+                <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
 
     <!-- State Search -->
     <div class="col-md-6">
@@ -37,28 +59,6 @@
         <label for="village_search" class="form-label">Search Village</label>
         <input type="text" id="village_search" class="form-control" placeholder="e.g., Wagholi" disabled>
         <div id="village_results" class="mt-2"></div>
-    </div>
-
-    <!-- Project ID -->
-    <div class="col-md-6">
-        <label for="project_id" class="form-label">Project ID</label>
-        <select id="project_id" name="project_id" class="form-select" required>
-            <option value="">-- Select Project --</option>
-            {% for project in projects %}
-                <option value="{{ project.project_id }}">{{ project.project_name }} ({{ project.project_id }})</option>
-            {% endfor %}
-        </select>
-    </div>
-
-    <!-- Location Type -->
-    <div class="col-md-6">
-        <label for="pl_location_type" class="form-label">Location Type</label>
-        <select id="pl_location_type" name="pl_location_type" class="form-select" required>
-            <option value="">-- Select Location Type --</option>
-            {% for value, label in location_type_choices %}
-                <option value="{{ value }}">{{ label }}</option>
-            {% endfor %}
-        </select>
     </div>
 
     <!-- Submit Button -->
@@ -149,7 +149,7 @@ $(document).ready(function() {
 
     // State Search
     $('#state_search').on('input', function() {
-        const query = $(this).val();
+        const query = $(this).val().trim();
         clearLowerLevelFields(1);
         if (query.length >= 1) {
             $.ajax({
@@ -158,16 +158,22 @@ $(document).ready(function() {
                 data: { query: query },
                 success: function(data) {
                     let html = '<ul class="search-results">';
+                    let hasExactMatch = false;
                     if (data.has_results) {
                         $.each(data.states, function(index, state) {
                             html += `<li class="state-row" data-id="${state.st_id}" data-name="${state.st_name}">
                                 ${state.st_name}
                             </li>`;
+                            if (state.st_name.toLowerCase() === query.toLowerCase()) {
+                                hasExactMatch = true;
+                            }
                         });
                     }
-                    html += `<li class="add-item add-state-btn" data-name="${query}">
-                        Add "${query}" as a new State
-                    </li>`;
+                    if (!hasExactMatch) {
+                        html += `<li class="add-item add-state-btn" data-name="${query}">
+                            Add "${query}" as a new State
+                        </li>`;
+                    }
                     html += '</ul>';
                     $('#state_results').html(html);
 
@@ -226,7 +232,7 @@ $(document).ready(function() {
     // District Search
     $('#district_search').on('input', function() {
         if (!selectedStateId) return;
-        const query = $(this).val();
+        const query = $(this).val().trim();
         clearLowerLevelFields(2);
         if (query.length >= 1) {
             $.ajax({
@@ -235,16 +241,22 @@ $(document).ready(function() {
                 data: { query: query, state_id: selectedStateId },
                 success: function(data) {
                     let html = '<ul class="search-results">';
+                    let hasExactMatch = false;
                     if (data.has_results) {
                         $.each(data.districts, function(index, district) {
                             html += `<li class="district-row" data-id="${district.dist_id}" data-name="${district.dist_name}">
                                 ${district.dist_name}
                             </li>`;
+                            if (district.dist_name.toLowerCase() === query.toLowerCase()) {
+                                hasExactMatch = true;
+                            }
                         });
                     }
-                    html += `<li class="add-item add-district-btn" data-name="${query}">
-                        Add "${query}" as a new District
-                    </li>`;
+                    if (!hasExactMatch) {
+                        html += `<li class="add-item add-district-btn" data-name="${query}">
+                            Add "${query}" as a new District
+                        </li>`;
+                    }
                     html += '</ul>';
                     $('#district_results').html(html);
 
@@ -306,7 +318,7 @@ $(document).ready(function() {
             $('#tehsil_results').html('<p class="text-danger">Please select a district first.</p>');
             return;
         }
-        const query = $(this).val();
+        const query = $(this).val().trim();
         clearLowerLevelFields(3);
         if (query.length >= 1) {
             $.ajax({
@@ -315,16 +327,22 @@ $(document).ready(function() {
                 data: { query: query, district_id: selectedDistrictId },
                 success: function(data) {
                     let html = '<ul class="search-results">';
+                    let hasExactMatch = false;
                     if (data.has_results) {
                         $.each(data.talukas, function(index, taluka) {
                             html += `<li class="tehsil-row" data-id="${taluka.tal_id}" data-name="${taluka.tal_name}">
                                 ${taluka.tal_name}
                             </li>`;
+                            if (taluka.tal_name.toLowerCase() === query.toLowerCase()) {
+                                hasExactMatch = true;
+                            }
                         });
                     }
-                    html += `<li class="add-item add-tehsil-btn" data-name="${query}">
-                        Add "${query}" as a new Tehsil
-                    </li>`;
+                    if (!hasExactMatch) {
+                        html += `<li class="add-item add-tehsil-btn" data-name="${query}">
+                            Add "${query}" as a new Tehsil
+                        </li>`;
+                    }
                     html += '</ul>';
                     $('#tehsil_results').html(html);
 
@@ -390,7 +408,7 @@ $(document).ready(function() {
             $('#village_results').html('<p class="text-danger">Please select a tehsil first.</p>');
             return;
         }
-        const query = $(this).val();
+        const query = $(this).val().trim();
         if (query.length >= 1) {
             $.ajax({
                 url: '{% url "search_villages" %}',
@@ -398,16 +416,22 @@ $(document).ready(function() {
                 data: { query: query, taluka_id: selectedTalukaId },
                 success: function(data) {
                     let html = '<ul class="search-results">';
+                    let hasExactMatch = false;
                     if (data.has_results) {
                         $.each(data.villages, function(index, village) {
                             html += `<li class="village-row" data-id="${village.vil_id}" data-name="${village.name}">
                                 ${village.name}
                             </li>`;
+                            if (village.name.toLowerCase() === query.toLowerCase()) {
+                                hasExactMatch = true;
+                            }
                         });
                     }
-                    html += `<li class="add-item add-village-btn" data-name="${query}">
-                        Add "${query}" as a new Village
-                    </li>`;
+                    if (!hasExactMatch) {
+                        html += `<li class="add-item add-village-btn" data-name="${query}">
+                            Add "${query}" as a new Village
+                        </li>`;
+                    }
                     html += '</ul>';
                     $('#village_results').html(html);
 

@@ -1,125 +1,167 @@
 {% extends 'accounts/base.html' %}
 {% block title %}Edit User - ID: {{ user.id }}{% endblock %}
 {% block content %}
-<h1 class="mb-4">Edit User - ID: {{ user.id }}</h1>
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white border-bottom-0 py-3">
+        <h1 class="h5 mb-0">
+            <i class="bi bi-person-gear text-primary me-2"></i>Edit User - ID: {{ user.id }}
+        </h1>
+    </div>
+    <div class="card-body">
+        <h2 class="h6 mb-3 text-muted">User Details</h2>
+        <form method="post" action="{% url 'edit_user' user.id %}" class="row g-3 mb-4" id="edit-user-form" onsubmit="return validateForm()">
+            {% csrf_token %}
+            <div class="col-md-6">
+                <label for="full_name" class="form-label">Full Name</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                    <input type="text" id="full_name" name="full_name" value="{{ user.full_name }}" class="form-control" required>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label for="email" class="form-label">Email</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                    <input type="email" id="email" name="email" value="{{ user.email|default_if_none:"" }}" class="form-control">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label for="username" class="form-label">Username</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
+                    <input type="text" id="username" name="username" value="{{ user.username }}" class="form-control" required>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label for="password" class="form-label">New Password</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-key"></i></span>
+                    <input type="password" id="password" name="password" class="form-control" placeholder="Enter new password">
+                </div>
+                <small class="text-muted">Leave blank to keep current password</small>
+            </div>
+            <div class="col-md-6">
+                <label for="mobile_no" class="form-label">Mobile No</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-phone"></i></span>
+                    <input type="text" id="mobile_no" name="mobile_no" value="{{ user.mobile_no|default_if_none:"" }}"
+                           class="form-control" pattern="[0-9]{10}" title="Mobile number must be 10 digits"
+                           placeholder="e.g., 9876543210" oninput="validateMobileNo(this)">
+                </div>
+                <div id="mobile_no_error" class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+                <label for="user_type" class="form-label">User Type</label>
+                <select id="user_type" name="user_type" class="form-select" required>
+                    {% for value, label in user_type_choices %}
+                        <option value="{{ value }}" {% if user.user_type == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label for="dept_id" class="form-label">Department ID</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-building"></i></span>
+                    <input type="text" id="dept_id" name="dept_id" class="form-control" placeholder="e.g., dept-001"
+                           value="{% for dept in user.project_id.keys %}{{ dept }}{% if not forloop.last %},{% endif %}{% endfor %}">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label for="project_ids" class="form-label">Project IDs</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-folder"></i></span>
+                    <input type="text" id="project_ids" name="project_ids" class="form-control" placeholder="e.g., 1,2,3"
+                           value="{% for dept, projects in user.project_id.items %}{% if forloop.first %}{{ projects|join:',' }}{% endif %}{% endfor %}">
+                </div>
+                <small class="text-muted">Comma-separated values</small>
+            </div>
+            <div class="col-md-6">
+                <label for="profile" class="form-label">Profile</label>
+                <select id="profile" name="profile" class="form-select">
+                    <option value="">-- None --</option>
+                    {% for profile in profiles %}
+                        <option value="{{ profile.id }}" {% if user.profile_id.id == profile.id %}selected{% endif %}>
+                            {{ profile.profile_name }} ({{ profile.profile_id }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-12 mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save me-1"></i>Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
-{% if messages %}
-    <ul class="list-unstyled">
-        {% for message in messages %}
-            <li class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </li>
-        {% endfor %}
-    </ul>
-{% endif %}
-
-<h2 class="mb-3">User Details</h2>
-<form method="post" action="{% url 'edit_user' user.id %}" class="row g-3 mb-4" id="edit-user-form" onsubmit="return validateForm()">
-    {% csrf_token %}
-    <div class="col-md-6">
-        <label for="full_name" class="form-label">Full Name</label>
-        <input type="text" id="full_name" name="full_name" value="{{ user.full_name }}" class="form-control" required>
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white border-bottom-0 py-3">
+        <h2 class="h6 mb-0 text-muted">Assigned Profiles</h2>
     </div>
-    <div class="col-md-6">
-        <label for="email" class="form-label">Email</label>
-        <input type="email" id="email" name="email" value="{{ user.email|default_if_none:"" }}" class="form-control">
-    </div>
-    <div class="col-md-6">
-        <label for="username" class="form-label">Username</label>
-        <input type="text" id="username" name="username" value="{{ user.username }}" class="form-control" required>
-    </div>
-    <div class="col-md-6">
-        <label for="password" class="form-label">New Password (leave blank to keep current)</label>
-        <input type="password" id="password" name="password" class="form-control" placeholder="Enter new password">
-        <small class="form-text text-muted">Leave blank to keep the current password.</small>
-    </div>
-    <div class="col-md-6">
-        <label for="mobile_no" class="form-label">Mobile No</label>
-        <input type="text" id="mobile_no" name="mobile_no" value="{{ user.mobile_no|default_if_none:"" }}"
-               class="form-control" pattern="[0-9]{10}" title="Mobile number must be 10 digits"
-               placeholder="e.g., 9876543210" oninput="validateMobileNo(this)">
-        <div id="mobile_no_error" class="invalid-feedback"></div>
-    </div>
-    <div class="col-md-6">
-        <label for="user_type" class="form-label">User Type</label>
-        <select id="user_type" name="user_type" class="form-select" required>
-            {% for value, label in user_type_choices %}
-                <option value="{{ value }}" {% if user.user_type == value %}selected{% endif %}>{{ label }}</option>
+    <div class="card-body">
+        <ul class="list-group list-group-flush">
+            {% for assignment in assignments %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="fw-bold">Profile ID: {{ assignment.profile_id.profile_id|default:"--" }}</span>
+                        <span class="text-muted ms-3">(Line: {{ assignment.line_no }})</span>
+                        <span class="badge bg-{% if assignment.profile_id.p_status %}success{% else %}danger{% endif %} ms-2">
+                            {{ assignment.profile_id.p_status|yesno:"Active,Inactive" }}
+                        </span>
+                    </div>
+                    {% if assignment.profile_id %}
+                    <a href="{% url 'toggle_profile_status' user.username assignment.line_no %}?is_active={% if assignment.profile_id.p_status %}false{% else %}true{% endif %}&redirect_to=edit" 
+                       class="btn btn-sm {% if assignment.profile_id.p_status %}btn-outline-warning{% else %}btn-outline-success{% endif %}">
+                        <i class="bi bi-{% if assignment.profile_id.p_status %}x-circle{% else %}check-circle{% endif %} me-1"></i>
+                        {% if assignment.profile_id.p_status %}Deactivate{% else %}Activate{% endif %}
+                    </a>
+                    {% endif %}
+                </li>
+            {% empty %}
+                <li class="list-group-item text-center text-muted py-3">No profiles assigned</li>
             {% endfor %}
-        </select>
+        </ul>
     </div>
-    <div class="col-md-6">
-        <label for="dept_id" class="form-label">Department ID</label>
-        <input type="text" id="dept_id" name="dept_id" class="form-control" placeholder="e.g., dept-001"
-               value="{% for dept in user.project_id.keys %}{{ dept }}{% if not forloop.last %},{% endif %}{% endfor %}">
-    </div>
-    <div class="col-md-6">
-        <label for="project_ids" class="form-label">Project IDs (comma-separated)</label>
-        <input type="text" id="project_ids" name="project_ids" class="form-control" placeholder="e.g., 1,2,3"
-               value="{% for dept, projects in user.project_id.items %}{% if forloop.first %}{{ projects|join:',' }}{% endif %}{% endfor %}">
-    </div>
-    <div class="col-md-6">
-        <label for="profile" class="form-label">Profile</label>
-        <select id="profile" name="profile" class="form-select">
-            <option value="">-- None --</option>
-            {% for profile in profiles %}
-                <option value="{{ profile.id }}" {% if user.profile_id.id == profile.id %}selected{% endif %}>
-                    {{ profile.profile_name }} ({{ profile.profile_id }})
-                </option>
-            {% endfor %}
-        </select>
-    </div>
-    <div class="col-12">
-        <button type="submit" class="btn btn-primary">Save Changes</button>
-    </div>
-</form>
+</div>
 
-<h2 class="mb-3">Assigned Profiles</h2>
-<ul class="list-group mb-4">
-    {% for assignment in assignments %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-            Profile ID: {{ assignment.profile_id.profile_id|default:"--" }} (Line: {{ assignment.line_no }}, 
-            Status: {{ assignment.profile_id.p_status|yesno:"Active,Inactive" }})
-            {% if assignment.profile_id %}
-            <a href="{% url 'toggle_profile_status' user.username assignment.line_no %}?is_active={% if assignment.profile_id.p_status %}false{% else %}true{% endif %}&redirect_to=edit" 
-               class="btn btn-sm {% if assignment.profile_id.p_status %}btn-warning{% else %}btn-success{% endif %}">
-                {% if assignment.profile_id.p_status %}Deactivate{% else %}Activate{% endif %}
-            </a>
-            {% endif %}
-        </li>
-    {% empty %}
-        <li class="list-group-item">No profiles assigned</li>
-    {% endfor %}
-</ul>
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white border-bottom-0 py-3">
+        <h2 class="h6 mb-0 text-muted">Assign New Profile</h2>
+    </div>
+    <div class="card-body">
+        <form method="get" action="{% url 'assign_profile_from_edit' user.username %}" class="row g-3">
+            <div class="col-md-8">
+                <select name="profile_id" class="form-select">
+                    {% for profile in profiles %}
+                        <option value="{{ profile.profile_id }}">{{ profile.profile_name }} ({{ profile.profile_id }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-plus-circle me-1"></i>Assign Profile
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
-<div class="mb-4">
+<div class="d-flex justify-content-between mb-4">
+    <a href="{% url 'all_users' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Back to All Users
+    </a>
     {% if user.status %}
-        <a href="{% url 'toggle_user_status' user.username %}?activate=false" class="btn btn-danger">Master Deactivate User</a>
+        <a href="{% url 'toggle_user_status' user.username %}?activate=false" class="btn btn-danger">
+            <i class="bi bi-person-x me-1"></i>Master Deactivate User
+        </a>
     {% else %}
-        <a href="{% url 'toggle_user_status' user.username %}?activate=true" class="btn btn-success">Master Activate User</a>
+        <a href="{% url 'toggle_user_status' user.username %}?activate=true" class="btn btn-success">
+            <i class="bi bi-person-check me-1"></i>Master Activate User
+        </a>
     {% endif %}
 </div>
 
-<h2 class="mb-3">Assign New Profile</h2>
-<form method="get" action="{% url 'assign_profile_from_edit' user.username %}" class="row g-3 mb-4">
-    <div class="col-md-4">
-        <select name="profile_id" class="form-select">
-            {% for profile in profiles %}
-                <option value="{{ profile.profile_id }}">{{ profile.profile_name }} ({{ profile.profile_id }})</option>
-            {% endfor %}
-        </select>
-    </div>
-    <div class="col-md-2">
-        <button type="submit" class="btn btn-primary w-100">Assign</button>
-    </div>
-</form>
-
-<p>
-    <a href="{% url 'all_users' %}" class="btn btn-secondary">Back to All Users</a>
-</p>
-
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 function validateMobileNo(input) {
     const errorDiv = document.getElementById('mobile_no_error');

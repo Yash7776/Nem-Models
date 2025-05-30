@@ -1,51 +1,69 @@
 {% extends 'accounts/base.html' %}
 {% block title %}All Users{% endblock %}
 {% block content %}
-<h1 class="mb-4">All Users</h1>
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>User ID</th>
-            <th>Full Name</th>
-            <th>Username</th>
-            <th>Email</th>
-            <th>Mobile No</th>
-            <th>User Type</th>
-            <th>Project IDs</th>
-            <th>Status</th>
-            <th>Inserted On</th>
-            <th>Deactivated On</th>
-            <th>Edit</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for row in rows %}
-        <tr>
-            <td>{{ row.id }}</td>
-            <td>{{ row.user_id }}</td>
-            <td>{{ row.full_name }}</td>
-            <td>{{ row.username }}</td>
-            <td>{{ row.email|default:"--" }}</td>
-            <td>{{ row.mobile_no|default:"--" }}</td>
-            <td>{{ row.get_user_type_display }}</td>
-            <td>
-                {% for dept, projects in row.project_id.items %}
-                    {{ dept }}: {{ projects|join:',' }}{% if not forloop.last %}; {% endif %}
-                {% empty %}
-                    --
-                {% endfor %}
-            </td>
-            <td>{{ row.get_status_display }}</td>
-            <td>{{ row.inserted_on }}</td>
-            <td>{{ row.deactivated_on|default:"--" }}</td>
-            <td><a href="{% url 'edit_user' row.id %}">Edit</a></td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="12">No users found</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2 mb-0">
+        <i class="bi bi-table text-primary me-2"></i>All Users
+    </h1>
+    <a href="{% url 'create_user' %}" class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>Create User
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>User ID</th>
+                        <th>Full Name</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Mobile</th>
+                        <th>Type</th>
+                        <th>Projects</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        <td>{{ row.id }}</td>
+                        <td>{{ row.user_id }}</td>
+                        <td>{{ row.full_name }}</td>
+                        <td>{{ row.username }}</td>
+                        <td>{{ row.email|default:"--" }}</td>
+                        <td>{{ row.mobile_no|default:"--" }}</td>
+                        <td><span class="badge bg-secondary">{{ row.get_user_type_display }}</span></td>
+                        <td>
+                            {% for dept, projects in row.project_id.items %}
+                                <span class="badge bg-light text-dark">{{ dept }}: {{ projects|join:',' }}</span>
+                            {% empty %}
+                                --
+                            {% endfor %}
+                        </td>
+                        <td>
+                            <span class="badge bg-{% if row.status %}success{% else %}danger{% endif %}">
+                                {{ row.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'edit_user' row.id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10" class="text-center py-4 text-muted">No users found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 {% endblock %}
