@@ -57,28 +57,31 @@
                 </select>
             </div>
             <div class="col-md-6">
-                <label for="dept_id" class="form-label">Department ID</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-building"></i></span>
-                    <input type="text" id="dept_id" name="dept_id" class="form-control" placeholder="e.g., dept-001">
-                </div>
-            </div>
-            <div class="col-md-6">
-                <label for="project_ids" class="form-label">Project IDs</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-folder"></i></span>
-                    <input type="text" id="project_ids" name="project_ids" class="form-control" placeholder="e.g., 1,2,3">
-                </div>
-                <small class="text-muted">Comma-separated values</small>
-            </div>
-            <div class="col-md-6">
-                <label for="profile" class="form-label">Profile</label>
-                <select id="profile" name="profile" class="form-select">
-                    <option value="">-- None --</option>
-                    {% for profile in profiles %}
-                        <option value="{{ profile.profile_id }}">{{ profile.profile_name }} ({{ profile.profile_id }})</option>
+                <label for="dept_id" class="form-label">Department</label>
+                <select id="dept_id" name="dept_id" class="form-select">
+                    <option value="">-- Select Department --</option>
+                    {% for department in departments %}
+                        <option value="{{ department.dept_id }}">{{ department.name }} ({{ department.dept_id }})</option>
                     {% endfor %}
                 </select>
+            </div>
+            <div class="col-md-6">
+                <label for="project_ids" class="form-label">Projects</label>
+                <select id="project_ids" name="project_ids[]" class="form-control" multiple>
+                    <option value="" disabled>Select a department to view projects</option>
+                </select>
+                <small class="text-muted">Optionally select one or more projects associated with the department.</small>
+            </div>
+            <div class="col-md-6">
+                <label for="profile_ids" class="form-label">Profiles</label>
+                <select id="profile_ids" name="profile_ids[]" class="form-control" multiple>
+                    {% for profile in profiles %}
+                        <option value="{{ profile.profile_id }}">{{ profile.profile_name }} ({{ profile.profile_id }})</option>
+                    {% empty %}
+                        <option value="" disabled>No profiles available</option>
+                    {% endfor %}
+                </select>
+                <small class="text-muted">Optionally select one or more profiles.</small>
             </div>
             <div class="col-12 mt-4">
                 <div class="d-flex justify-content-between">
@@ -93,6 +96,10 @@
         </form>
     </div>
 </div>
+
+<!-- Include Choices.js CSS and JS from CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
 <script>
     function validateUsernameEmail() {
@@ -150,11 +157,112 @@
 
     function validateForm() {
         const mobileInput = document.getElementById('mobile_no');
-
         const isUsernameEmailValid = validateUsernameEmail();
         const isMobileValid = validateMobileNo(mobileInput);
-
         return isUsernameEmailValid && isMobileValid;
     }
+
+    // Initialize Choices.js for Profiles
+    const profileChoices = new Choices('#profile_ids', {
+        removeItemButton: true,
+        searchEnabled: true,
+        searchPlaceholderValue: 'Search profiles',
+        itemSelectText: '',
+        noResultsText: 'No profiles found',
+        placeholderValue: 'Select profiles',
+        maxItemCount: -1, // Allow unlimited selections
+    });
+
+    // Initialize Choices.js for Projects
+    const projectChoices = new Choices('#project_ids', {
+        removeItemButton: true,
+        searchEnabled: true,
+        searchPlaceholderValue: 'Search projects',
+        itemSelectText: '',
+        noResultsText: 'No projects found',
+        placeholderValue: 'Select projects',
+        maxItemCount: -1, // Allow unlimited selections
+    });
+
+    // AJAX to fetch projects based on department
+    document.getElementById('dept_id').addEventListener('change', function() {
+        const deptId = this.value;
+
+        // Clear existing project options
+        projectChoices.clearStore();
+        projectChoices.setChoices([{ value: '', label: 'Select a department to view projects', disabled: true }]);
+
+        if (!deptId) {
+            projectChoices.disable();
+            return;
+        }
+
+        projectChoices.enable();
+        fetch(`/get-projects/${deptId}/`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.projects.length === 0) {
+                projectChoices.setChoices([{ value: '', label: 'No active projects found for this department', disabled: true }]);
+                projectChoices.disable();
+            } else {
+                const choices = data.projects.map(project => ({
+                    value: project.project_id,
+                    label: `${project.project_name} (${project.project_id})`,
+                }));
+                projectChoices.setChoices(choices, 'value', 'label', true);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching projects:', error);
+            projectChoices.setChoices([{ value: '', label: 'Error loading projects. Please try again.', disabled: true }]);
+            projectChoices.disable();
+        });
+    });
+
+    // Initialize project selection on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const deptId = document.getElementById('dept_id').value;
+        if (!deptId) {
+            projectChoices.disable();
+            projectChoices.setChoices([{ value: '', label: 'Select a department to view projects', disabled: true }]);
+        }
+    });
 </script>
+
+<style>
+    /* Customize Choices.js appearance */
+    .choices__inner {
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        background-color: #fff;
+        padding: 0.375rem 0.75rem;
+        min-height: 38px;
+    }
+    .choices__list--multiple .choices__item {
+        background-color: #007bff;
+        border: 1px solid #0056b3;
+        color: #fff;
+        border-radius: 0.2rem;
+    }
+    .choices__list--multiple .choices__item--selectable.is-highlighted {
+        background-color: #0056b3;
+    }
+    .choices__list--dropdown {
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        z-index: 1000;
+    }
+    .choices__list--dropdown .choices__item--selectable.is-highlighted {
+        background-color: #f8f9fa;
+    }
+    .choices__input {
+        background-color: transparent;
+    }
+</style>
 {% endblock %}

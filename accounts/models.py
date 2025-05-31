@@ -271,7 +271,7 @@ class User_header_all(models.Model):
         blank=True,
         related_name='user_assignments'
     )
-    project_id = models.JSONField(default=dict)
+    project_id = models.JSONField(default=dict,blank=True,null=True)
     user_type = models.IntegerField(choices=USER_TYPE_CHOICES, default=1)
     status = models.IntegerField(choices=STATUS_CHOICES, default=1)
     inserted_on = models.DateTimeField(auto_now_add=True)

@@ -25,4 +25,5 @@ urlpatterns = [
     path('add-district/', views.add_district, name='add_district'),
     path('add-taluka/', views.add_taluka, name='add_taluka'),
     path('add-village/', views.add_village, name='add_village'),
+    path('get-projects/<str:dept_id>/', views.get_projects_by_department, name='get_projects_by_department'),
 ]

@@ -1,15 +1,14 @@
 {% extends 'accounts/base.html' %}
 {% block title %}Edit User - ID: {{ user.id }}{% endblock %}
 {% block content %}
-<div class="card border-0 shadow-sm mb-4">
+<div class="card border-0 shadow-sm">
     <div class="card-header bg-white border-bottom-0 py-3">
         <h1 class="h5 mb-0">
             <i class="bi bi-person-gear text-primary me-2"></i>Edit User - ID: {{ user.id }}
         </h1>
     </div>
     <div class="card-body">
-        <h2 class="h6 mb-3 text-muted">User Details</h2>
-        <form method="post" action="{% url 'edit_user' user.id %}" class="row g-3 mb-4" id="edit-user-form" onsubmit="return validateForm()">
+        <form method="post" action="{% url 'edit_user' user.id %}" class="row g-3" id="edit-user-form" onsubmit="return validateForm()">
             {% csrf_token %}
             <div class="col-md-6">
                 <label for="full_name" class="form-label">Full Name</label>
@@ -22,33 +21,34 @@
                 <label for="email" class="form-label">Email</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                    <input type="email" id="email" name="email" value="{{ user.email|default_if_none:"" }}" class="form-control">
+                    <input type="email" id="email" name="email" value="{{ user.email|default_if_none:"" }}" class="form-control" oninput="validateUsernameEmail()">
+                    <div id="email_error" class="invalid-feedback"></div>
                 </div>
             </div>
             <div class="col-md-6">
                 <label for="username" class="form-label">Username</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
-                    <input type="text" id="username" name="username" value="{{ user.username }}" class="form-control" required>
+                    <input type="text" id="username" name="username" value="{{ user.username }}" class="form-control" required oninput="validateUsernameEmail()">
+                    <div id="username_error" class="invalid-feedback"></div>
                 </div>
             </div>
             <div class="col-md-6">
                 <label for="password" class="form-label">New Password</label>
                 <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-key"></i></span>
-                    <input type="password" id="password" name="password" class="form-control" placeholder="Enter new password">
+                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                    <input type="password" id="password" name="password" class="form-control" placeholder="Leave blank to keep current password">
                 </div>
                 <small class="text-muted">Leave blank to keep current password</small>
             </div>
             <div class="col-md-6">
                 <label for="mobile_no" class="form-label">Mobile No</label>
-                <div class="input-group">
+                <div class="input-group has-validation">
                     <span class="input-group-text"><i class="bi bi-phone"></i></span>
                     <input type="text" id="mobile_no" name="mobile_no" value="{{ user.mobile_no|default_if_none:"" }}"
-                           class="form-control" pattern="[0-9]{10}" title="Mobile number must be 10 digits"
-                           placeholder="e.g., 9876543210" oninput="validateMobileNo(this)">
+                           class="form-control" pattern="[0-9]{10}" placeholder="e.g., 9876543210" oninput="validateMobileNo(this)">
+                    <div id="mobile_no_error" class="invalid-feedback">Mobile number is invalid.</div>
                 </div>
-                <div id="mobile_no_error" class="invalid-feedback"></div>
             </div>
             <div class="col-md-6">
                 <label for="user_type" class="form-label">User Type</label>
@@ -59,140 +59,257 @@
                 </select>
             </div>
             <div class="col-md-6">
-                <label for="dept_id" class="form-label">Department ID</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-building"></i></span>
-                    <input type="text" id="dept_id" name="dept_id" class="form-control" placeholder="e.g., dept-001"
-                           value="{% for dept in user.project_id.keys %}{{ dept }}{% if not forloop.last %},{% endif %}{% endfor %}">
-                </div>
-            </div>
-            <div class="col-md-6">
-                <label for="project_ids" class="form-label">Project IDs</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-folder"></i></span>
-                    <input type="text" id="project_ids" name="project_ids" class="form-control" placeholder="e.g., 1,2,3"
-                           value="{% for dept, projects in user.project_id.items %}{% if forloop.first %}{{ projects|join:',' }}{% endif %}{% endfor %}">
-                </div>
-                <small class="text-muted">Comma-separated values</small>
-            </div>
-            <div class="col-md-6">
-                <label for="profile" class="form-label">Profile</label>
-                <select id="profile" name="profile" class="form-select">
-                    <option value="">-- None --</option>
-                    {% for profile in profiles %}
-                        <option value="{{ profile.id }}" {% if user.profile_id.id == profile.id %}selected{% endif %}>
-                            {{ profile.profile_name }} ({{ profile.profile_id }})
+                <label for="dept_id" class="form-label">Department</label>
+                <select id="dept_id" name="dept_id" class="form-select">
+                    <option value="">-- Select Department --</option>
+                    {% for department in departments %}
+                        <option value="{{ department.dept_id }}" {% if dept_id == department.dept_id %}selected{% endif %}>
+                            {{ department.name }} ({{ department.dept_id }})
                         </option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-12 mt-4">
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-save me-1"></i>Save Changes
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<div class="card border-0 shadow-sm mb-4">
-    <div class="card-header bg-white border-bottom-0 py-3">
-        <h2 class="h6 mb-0 text-muted">Assigned Profiles</h2>
-    </div>
-    <div class="card-body">
-        <ul class="list-group list-group-flush">
-            {% for assignment in assignments %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <div>
-                        <span class="fw-bold">Profile ID: {{ assignment.profile_id.profile_id|default:"--" }}</span>
-                        <span class="text-muted ms-3">(Line: {{ assignment.line_no }})</span>
-                        <span class="badge bg-{% if assignment.profile_id.p_status %}success{% else %}danger{% endif %} ms-2">
-                            {{ assignment.profile_id.p_status|yesno:"Active,Inactive" }}
-                        </span>
-                    </div>
-                    {% if assignment.profile_id %}
-                    <a href="{% url 'toggle_profile_status' user.username assignment.line_no %}?is_active={% if assignment.profile_id.p_status %}false{% else %}true{% endif %}&redirect_to=edit" 
-                       class="btn btn-sm {% if assignment.profile_id.p_status %}btn-outline-warning{% else %}btn-outline-success{% endif %}">
-                        <i class="bi bi-{% if assignment.profile_id.p_status %}x-circle{% else %}check-circle{% endif %} me-1"></i>
-                        {% if assignment.profile_id.p_status %}Deactivate{% else %}Activate{% endif %}
-                    </a>
+            <div class="col-md-6">
+                <label for="project_ids" class="form-label">Projects</label>
+                <select id="project_ids" name="project_ids[]" class="form-control" multiple>
+                    {% if selected_project_ids %}
+                        {% for project in projects %}
+                            <option value="{{ project.project_id }}" {% if project.project_id in selected_project_ids %}selected{% endif %}>
+                                {{ project.project_name }} ({{ project.project_id }})
+                            </option>
+                        {% endfor %}
+                    {% else %}
+                        <option value="" disabled>Select a department to view projects</option>
                     {% endif %}
-                </li>
-            {% empty %}
-                <li class="list-group-item text-center text-muted py-3">No profiles assigned</li>
-            {% endfor %}
-        </ul>
-    </div>
-</div>
-
-<div class="card border-0 shadow-sm mb-4">
-    <div class="card-header bg-white border-bottom-0 py-3">
-        <h2 class="h6 mb-0 text-muted">Assign New Profile</h2>
-    </div>
-    <div class="card-body">
-        <form method="get" action="{% url 'assign_profile_from_edit' user.username %}" class="row g-3">
-            <div class="col-md-8">
-                <select name="profile_id" class="form-select">
+                </select>
+                <small class="text-muted">Optionally select one or more projects associated with the department.</small>
+            </div>
+            <div class="col-md-6">
+                <label for="profile_ids" class="form-label">Profiles</label>
+                <select id="profile_ids" name="profile_ids[]" class="form-control" multiple>
                     {% for profile in profiles %}
-                        <option value="{{ profile.profile_id }}">{{ profile.profile_name }} ({{ profile.profile_id }})</option>
+                        <option value="{{ profile.profile_id }}" {% if profile.profile_id in active_profile_ids %}selected{% endif %}>
+                            {{ profile.profile_name }} ({{ profile.profile_id }})
+                        </option>
+                    {% empty %}
+                        <option value="" disabled>No profiles available</option>
                     {% endfor %}
                 </select>
+                <small class="text-muted">Optionally select one or more profiles.</small>
             </div>
-            <div class="col-md-4">
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="bi bi-plus-circle me-1"></i>Assign Profile
-                </button>
+            <div class="col-12 mt-4">
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'all_users' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Back to All Users
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i>Save Changes
+                    </button>
+                </div>
             </div>
         </form>
     </div>
 </div>
 
-<div class="d-flex justify-content-between mb-4">
-    <a href="{% url 'all_users' %}" class="btn btn-outline-secondary">
-        <i class="bi bi-arrow-left me-1"></i>Back to All Users
-    </a>
-    {% if user.status %}
-        <a href="{% url 'toggle_user_status' user.username %}?activate=false" class="btn btn-danger">
-            <i class="bi bi-person-x me-1"></i>Master Deactivate User
-        </a>
-    {% else %}
-        <a href="{% url 'toggle_user_status' user.username %}?activate=true" class="btn btn-success">
-            <i class="bi bi-person-check me-1"></i>Master Activate User
-        </a>
-    {% endif %}
-</div>
+<!-- Include Choices.js CSS and JS from CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
 <script>
-function validateMobileNo(input) {
-    const errorDiv = document.getElementById('mobile_no_error');
-    const value = input.value;
-    const digits = value.replace(/\D/g, '');
-    if (value && digits.length !== 10) {
-        input.classList.add('is-invalid');
-        errorDiv.textContent = 'Mobile number must be exactly 10 digits long.';
-    } else if (value && !/^[6-9]/.test(digits)) {
-        input.classList.add('is-invalid');
-        errorDiv.textContent = 'Mobile number must start with 6, 7, 8, or 9.';
-    } else {
-        input.classList.remove('is-invalid');
-        errorDiv.textContent = '';
-    }
-}
+    function validateUsernameEmail() {
+        const usernameInput = document.getElementById('username');
+        const emailInput = document.getElementById('email');
+        const usernameError = document.getElementById('username_error');
+        const emailError = document.getElementById('email_error');
 
-function validateForm() {
-    const mobileInput = document.getElementById('mobile_no');
-    const value = mobileInput.value;
-    const digits = value.replace(/\D/g, '');
-    if (value && digits.length !== 10) {
-        mobileInput.classList.add('is-invalid');
-        document.getElementById('mobile_no_error').textContent = 'Mobile number must be exactly 10 digits long.';
-        return false;
+        let usernameValid = true;
+        let emailValid = true;
+
+        if (/\s/.test(usernameInput.value)) {
+            usernameInput.classList.add('is-invalid');
+            usernameError.textContent = 'Username cannot contain spaces.';
+            usernameValid = false;
+        } else {
+            usernameInput.classList.remove('is-invalid');
+            usernameError.textContent = '';
+        }
+
+        if (/\s/.test(emailInput.value)) {
+            emailInput.classList.add('is-invalid');
+            emailError.textContent = 'Email cannot contain spaces.';
+            emailValid = false;
+        } else {
+            emailInput.classList.remove('is-invalid');
+            emailError.textContent = '';
+        }
+
+        return usernameValid && emailValid;
     }
-    if (value && !/^[6-9]/.test(digits)) {
-        document.getElementById('mobile_no_error').textContent = 'Mobile number must start with 6, 7, 8, or 9.';
-        return false;
+
+    function validateMobileNo(input) {
+        const errorDiv = document.getElementById('mobile_no_error');
+        const value = input.value;
+        const digits = value.replace(/\D/g, '');
+
+        if (value && digits.length !== 10) {
+            input.classList.add('is-invalid');
+            input.classList.remove('is-valid');
+            errorDiv.textContent = 'Mobile number must be exactly 10 digits long.';
+            return false;
+        } else if (value && !/^[6-9]/.test(digits)) {
+            input.classList.add('is-invalid');
+            input.classList.remove('is-valid');
+            errorDiv.textContent = 'Mobile number must start with 6, 7, 8, or 9.';
+            return false;
+        } else {
+            input.classList.remove('is-invalid');
+            input.classList.add('is-valid');
+            errorDiv.textContent = '';
+            return true;
+        }
     }
-    return true;
-}
+
+    function validateForm() {
+        const mobileInput = document.getElementById('mobile_no');
+        const isUsernameEmailValid = validateUsernameEmail();
+        const isMobileValid = validateMobileNo(mobileInput);
+        return isUsernameEmailValid && isMobileValid;
+    }
+
+    // Initialize Choices.js for Profiles
+    const profileChoices = new Choices('#profile_ids', {
+        removeItemButton: true,
+        searchEnabled: true,
+        searchPlaceholderValue: 'Search profiles',
+        itemSelectText: '',
+        noResultsText: 'No profiles found',
+        placeholderValue: 'Select profiles',
+        maxItemCount: -1,
+    });
+
+    // Initialize Choices.js for Projects
+    const projectChoices = new Choices('#project_ids', {
+        removeItemButton: true,
+        searchEnabled: true,
+        searchPlaceholderValue: 'Search projects',
+        itemSelectText: '',
+        noResultsText: 'No projects found',
+        placeholderValue: 'Select projects',
+        maxItemCount: -1,
+    });
+
+    // AJAX to fetch projects based on department
+    document.getElementById('dept_id').addEventListener('change', function() {
+        const deptId = this.value;
+
+        // Clear existing project options
+        projectChoices.clearStore();
+        projectChoices.setChoices([{ value: '', label: 'Select a department to view projects', disabled: true }]);
+
+        if (!deptId) {
+            projectChoices.disable();
+            return;
+        }
+
+        projectChoices.enable();
+        fetch(`/get-projects/${deptId}/`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.projects.length === 0) {
+                projectChoices.setChoices([{ value: '', label: 'No active projects found for this department', disabled: true }]);
+                projectChoices.disable();
+            } else {
+                const choices = data.projects.map(project => ({
+                    value: project.project_id,
+                    label: `${project.project_name} (${project.project_id})`,
+                }));
+                projectChoices.setChoices(choices, 'value', 'label', true);
+                // Pre-select existing projects
+                {% for project_id in selected_project_ids %}
+                    projectChoices.setChoiceByValue('{{ project_id }}');
+                {% endfor %}
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching projects:', error);
+            projectChoices.setChoices([{ value: '', label: 'Error loading projects. Please try again.', disabled: true }]);
+            projectChoices.disable();
+        });
+    });
+
+    // Initialize project selection on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const deptId = document.getElementById('dept_id').value;
+        if (!deptId) {
+            projectChoices.disable();
+            projectChoices.setChoices([{ value: '', label: 'Select a department to view projects', disabled: true }]);
+        } else {
+            fetch(`/get-projects/${deptId}/`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.projects.length === 0) {
+                    projectChoices.setChoices([{ value: '', label: 'No active projects found for this department', disabled: true }]);
+                    projectChoices.disable();
+                } else {
+                    const choices = data.projects.map(project => ({
+                        value: project.project_id,
+                        label: `${project.project_name} (${project.project_id})`,
+                    }));
+                    projectChoices.setChoices(choices, 'value', 'label', true);
+                    // Pre-select existing projects
+                    {% for project_id in selected_project_ids %}
+                        projectChoices.setChoiceByValue('{{ project_id }}');
+                    {% endfor %}
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching projects:', error);
+                projectChoices.setChoices([{ value: '', label: 'Error loading projects. Please try again.', disabled: true }]);
+                projectChoices.disable();
+            });
+        }
+    });
 </script>
+
+<style>
+    .choices__inner {
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        background-color: #fff;
+        padding: 0.375rem 0.75rem;
+        min-height: 38px;
+    }
+    .choices__list--multiple .choices__item {
+        background-color: #007bff;
+        border: 1px solid #0056b3;
+        color: #fff;
+        border-radius: 0.2rem;
+    }
+    .choices__list--multiple .choices__item--selectable.is-highlighted {
+        background-color: #0056b3;
+    }
+    .choices__list--dropdown {
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        z-index: 1000;
+    }
+    .choices__list--dropdown .choices__item--selectable.is-highlighted {
+        background-color: #f8f9fa;
+    }
+    .choices__input {
+        background-color: transparent;
+    }
+</style>
 {% endblock %}
