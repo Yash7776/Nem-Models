@@ -1,57 +1,71 @@
 {% extends 'accounts/base.html' %}
-{% block title %}Manage Locations{% endblock %}
+{% block title %}Project Combination{% endblock %}
 {% block content %}
-<h1 class="mb-4">Manage Locations</h1>
+<h1 class="mb-4">Project Combination</h1>
 
-<div class="row g-3 mb-4" id="location-form">
+<form id="project-combination-form" action="{% url 'save_project_combination' %}" method="post" class="row g-3">
     {% csrf_token %}
-    <!-- Hidden fields to store selected IDs -->
-    <input type="hidden" id="selected_state_id" name="state_id">
-    <input type="hidden" id="selected_district_id" name="district_id">
-    <input type="hidden" id="selected_taluka_id" name="taluka_id">
-    <input type="hidden" id="selected_village_id" name="village_id">
+    
+    <!-- Project Selection -->
+    <div class="col-md-6">
+        <label for="project_id" class="form-label">Select Project</label>
+        <select id="project_id" name="project_id" class="form-select" required>
+            <option value="">Select a Project</option>
+            {% for project in projects %}
+                <option value="{{ project.project_id }}">{{ project.project_name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Location Type -->
+    <div class="col-md-6">
+        <label for="pl_location_type" class="form-label">Location Type</label>
+        <select id="pl_location_type" name="pl_location_type" class="form-select" required>
+            <option value="">Select Location Type</option>
+            {% for value, label in location_type_choices %}
+                <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
 
     <!-- State Search -->
     <div class="col-md-6">
         <label for="state_search" class="form-label">Search State</label>
         <input type="text" id="state_search" class="form-control" placeholder="e.g., Maharashtra">
+        <input type="hidden" id="state_id" name="state_id">
         <div id="state_results" class="mt-2"></div>
     </div>
 
     <!-- District Search -->
     <div class="col-md-6">
         <label for="district_search" class="form-label">Search District</label>
-        <div class="input-group">
-            <input type="text" id="district_search" class="form-control" placeholder="e.g., Pune" disabled>
-            <button type="button" class="btn btn-outline-primary add-district-btn" disabled>Add District</button>
-        </div>
+        <input type="text" id="district_search" class="form-control" placeholder="e.g., Pune" disabled>
+        <input type="hidden" id="district_id" name="district_id">
         <div id="district_results" class="mt-2"></div>
     </div>
 
     <!-- Tehsil (Taluka) Search -->
     <div class="col-md-6">
         <label for="tehsil_search" class="form-label">Search Tehsil</label>
-        <div class="input-group">
-            <input type="text" id="tehsil_search" class="form-control" placeholder="e.g., Haveli" disabled>
-            <button type="button" class="btn btn-outline-primary add-tehsil-btn" disabled>Add Tehsil</button>
-        </div>
+        <input type="text" id="tehsil_search" class="form-control" placeholder="e.g., Haveli" disabled>
+        <input type="hidden" id="taluka_id" name="taluka_id">
         <div id="tehsil_results" class="mt-2"></div>
     </div>
 
     <!-- Village Search -->
     <div class="col-md-6">
         <label for="village_search" class="form-label">Search Village</label>
-        <div class="input-group">
-            <input type="text" id="village_search" class="form-control" placeholder="e.g., Wagholi" disabled>
-            <button type="button" class="btn btn-outline-primary add-village-btn" disabled>Add Village</button>
-        </div>
+        <input type="text" id="village_search" class="form-control" placeholder="e.g., Wagholi" disabled>
+        <input type="hidden" id="village_id" name="village_id">
         <div id="village_results" class="mt-2"></div>
     </div>
-</div>
 
-<p class="mt-4">
-    <a href="{% url 'all_users' %}" class="btn btn-secondary">Back to All Users</a>
-</p>
+    <!-- Submit Button -->
+    <div class="col-12">
+        <button type="submit" class="btn btn-primary">Save Project Combination</button>
+        <a href="{% url 'all_users' %}" class="btn btn-secondary">Back to All Users</a>
+    </div>
+</form>
 
 <style>
     .search-results {
@@ -96,7 +110,6 @@ function getCookie(name) {
 const csrftoken = getCookie('csrftoken');
 
 $(document).ready(function() {
-    // Variables to store selected IDs
     let selectedStateId = null;
     let selectedDistrictId = null;
     let selectedTalukaId = null;
@@ -107,22 +120,19 @@ $(document).ready(function() {
         if (level <= 1) { // State changed
             $('#district_search').val('').prop('disabled', true);
             $('#district_results').html('');
-            $('#selected_district_id').val('');
-            $('.add-district-btn').prop('disabled', true);
+            $('#district_id').val('');
             selectedDistrictId = null;
         }
         if (level <= 2) { // State or District changed
             $('#tehsil_search').val('').prop('disabled', true);
             $('#tehsil_results').html('');
-            $('#selected_taluka_id').val('');
-            $('.add-tehsil-btn').prop('disabled', true);
+            $('#taluka_id').val('');
             selectedTalukaId = null;
         }
         if (level <= 3) { // State, District, or Tehsil changed
             $('#village_search').val('').prop('disabled', true);
             $('#village_results').html('');
-            $('#selected_village_id').val('');
-            $('.add-village-btn').prop('disabled', true);
+            $('#village_id').val('');
             selectedVillageId = null;
         }
     }
@@ -152,10 +162,9 @@ $(document).ready(function() {
                         selectedStateId = $(this).data('id');
                         const stateName = $(this).data('name');
                         $('#state_search').val(stateName);
-                        $('#selected_state_id').val(selectedStateId);
+                        $('#state_id').val(selectedStateId);
                         $('#state_results').html('');
                         $('#district_search').prop('disabled', false);
-                        $('.add-district-btn').prop('disabled', false);
                     });
                 },
                 error: function(xhr) {
@@ -168,7 +177,7 @@ $(document).ready(function() {
             });
         } else {
             $('#state_results').html('');
-            $('#selected_state_id').val('');
+            $('#state_id').val('');
             selectedStateId = null;
         }
     });
@@ -199,10 +208,9 @@ $(document).ready(function() {
                         selectedDistrictId = $(this).data('id');
                         const districtName = $(this).data('name');
                         $('#district_search').val(districtName);
-                        $('#selected_district_id').val(selectedDistrictId);
+                        $('#district_id').val(selectedDistrictId);
                         $('#district_results').html('');
                         $('#tehsil_search').prop('disabled', false);
-                        $('.add-tehsil-btn').prop('disabled', false);
                     });
                 },
                 error: function(xhr) {
@@ -215,55 +223,14 @@ $(document).ready(function() {
             });
         } else {
             $('#district_results').html('');
-            $('#selected_district_id').val('');
+            $('#district_id').val('');
             selectedDistrictId = null;
         }
     });
 
-    // Add District Button
-    $('.add-district-btn').on('click', function() {
-        if (!selectedStateId) {
-            $('#district_results').html('<p class="text-danger">Please select a state first.</p>');
-            return;
-        }
-        const districtName = $('#district_search').val().trim();
-        if (districtName.length < 2) {
-            $('#district_results').html('<p class="text-danger">District name must be at least 2 characters long.</p>');
-            return;
-        }
-        $.ajax({
-            url: '{% url "add_district" %}',
-            type: 'POST',
-            headers: { 'X-CSRFToken': csrftoken },
-            data: { district_name: districtName, state_id: selectedStateId },
-            success: function(data) {
-                if (data.status === 'success') {
-                    selectedDistrictId = data.district.dist_id;
-                    $('#district_search').val(data.district.dist_name);
-                    $('#selected_district_id').val(selectedDistrictId);
-                    $('#district_results').html('');
-                    $('#tehsil_search').prop('disabled', false);
-                    $('.add-tehsil-btn').prop('disabled', false);
-                } else {
-                    $('#district_results').html(`<p class="text-danger">Error: ${data.message}</p>`);
-                }
-            },
-            error: function(xhr) {
-                let errorMsg = 'Error adding district.';
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    errorMsg = xhr.responseJSON.message;
-                }
-                $('#district_results').html(`<p class="text-danger">Error: ${errorMsg}</p>`);
-            }
-        });
-    });
-
     // Tehsil (Taluka) Search
     $('#tehsil_search').on('input', function() {
-        if (!selectedDistrictId) {
-            $('#tehsil_results').html('<p class="text-danger">Please select a district first.</p>');
-            return;
-        }
+        if (!selectedDistrictId) return;
         const query = $(this).val().trim();
         clearLowerLevelFields(3);
         if (query.length >= 1) {
@@ -287,10 +254,9 @@ $(document).ready(function() {
                         selectedTalukaId = $(this).data('id');
                         const tehsilName = $(this).data('name');
                         $('#tehsil_search').val(tehsilName);
-                        $('#selected_taluka_id').val(selectedTalukaId);
+                        $('#taluka_id').val(selectedTalukaId);
                         $('#tehsil_results').html('');
                         $('#village_search').prop('disabled', false);
-                        $('.add-village-btn').prop('disabled', false);
                     });
                 },
                 error: function(xhr) {
@@ -303,55 +269,14 @@ $(document).ready(function() {
             });
         } else {
             $('#tehsil_results').html('');
-            $('#selected_taluka_id').val('');
+            $('#taluka_id').val('');
             selectedTalukaId = null;
         }
     });
 
-    // Add Tehsil Button
-    $('.add-tehsil-btn').on('click', function() {
-        if (!selectedDistrictId) {
-            $('#tehsil_results').html('<p class="text-danger">Please select a district first.</p>');
-            return;
-        }
-        const tehsilName = $('#tehsil_search').val().trim();
-        if (tehsilName.length < 2) {
-            $('#tehsil_results').html('<p class="text-danger">Tehsil name must be at least 2 characters long.</p>');
-            return;
-        }
-        $.ajax({
-            url: '{% url "add_taluka" %}',
-            type: 'POST',
-            headers: { 'X-CSRFToken': csrftoken },
-            data: { taluka_name: tehsilName, district_id: selectedDistrictId },
-            success: function(data) {
-                if (data.status === 'success') {
-                    selectedTalukaId = data.taluka.tal_id;
-                    $('#tehsil_search').val(data.taluka.tal_name);
-                    $('#selected_taluka_id').val(selectedTalukaId);
-                    $('#tehsil_results').html('');
-                    $('#village_search').prop('disabled', false);
-                    $('.add-village-btn').prop('disabled', false);
-                } else {
-                    $('#tehsil_results').html(`<p class="text-danger">Error: ${data.message}</p>`);
-                }
-            },
-            error: function(xhr) {
-                let errorMsg = 'Error adding tehsil.';
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    errorMsg = xhr.responseJSON.message;
-                }
-                $('#tehsil_results').html(`<p class="text-danger">Error: ${errorMsg}</p>`);
-            }
-        });
-    });
-
     // Village Search
     $('#village_search').on('input', function() {
-        if (!selectedTalukaId) {
-            $('#village_results').html('<p class="text-danger">Please select a tehsil first.</p>');
-            return;
-        }
+        if (!selectedTalukaId) return;
         const query = $(this).val().trim();
         if (query.length >= 1) {
             $.ajax({
@@ -374,7 +299,7 @@ $(document).ready(function() {
                         selectedVillageId = $(this).data('id');
                         const villageName = $(this).data('name');
                         $('#village_search').val(villageName);
-                        $('#selected_village_id').val(selectedVillageId);
+                        $('#village_id').val(selectedVillageId);
                         $('#village_results').html('');
                     });
                 },
@@ -388,43 +313,35 @@ $(document).ready(function() {
             });
         } else {
             $('#village_results').html('');
-            $('#selected_village_id').val('');
+            $('#village_id').val('');
             selectedVillageId = null;
         }
     });
 
-    // Add Village Button
-    $('.add-village-btn').on('click', function() {
-        if (!selectedTalukaId) {
-            $('#village_results').html('<p class="text-danger">Please select a tehsil first.</p>');
-            return;
-        }
-        const villageName = $('#village_search').val().trim();
-        if (villageName.length < 2) {
-            $('#village_results').html('<p class="text-danger">Village name must be at least 2 characters long.</p>');
-            return;
-        }
+    // Form Submission
+    $('#project-combination-form').on('submit', function(e) {
+        e.preventDefault();
         $.ajax({
-            url: '{% url "add_village" %}',
+            url: $(this).attr('action'),
             type: 'POST',
             headers: { 'X-CSRFToken': csrftoken },
-            data: { village_name: villageName, taluka_id: selectedTalukaId },
+            data: $(this).serialize(),
             success: function(data) {
                 if (data.status === 'success') {
-                    selectedVillageId = data.village.vil_id;
-                    $('#village_search').val(data.village.name);
-                    $('#selected_village_id').val(selectedVillageId);
-                    $('#village_results').html('');
+                    alert('Project combination saved successfully.');
+                    $('#project-combination-form')[0].reset();
+                    clearLowerLevelFields(1);
+                    $('#state_id').val('');
                 } else {
-                    $('#village_results').html(`<p class="text-danger">Error: ${data.message}</p>`);
+                    alert('Error: ' + (data.message || 'Failed to save project combination.'));
                 }
             },
             error: function(xhr) {
-                let errorMsg = 'Error adding village.';
+                let errorMsg = 'Error saving project combination.';
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMsg = xhr.responseJSON.message;
                 }
-                $('#village_results').html(`<p class="text-danger">Error: ${errorMsg}</p>`);
+                alert('Error: ' + errorMsg);
             }
         });
     });

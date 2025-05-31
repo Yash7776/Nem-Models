@@ -268,8 +268,11 @@ def users_summary(request):
     })
 
 def manage_locations(request):
+    return render(request, 'accounts/manage_locations.html', {})
+
+def project_combination(request):
     projects = Project.objects.filter(project_status=1)  # Only active projects
-    return render(request, 'accounts/manage_locations.html', {
+    return render(request, 'accounts/Project_Combination.html', {
         'projects': projects,
         'location_type_choices': ProjectLocationDetailsAll.LOCATION_TYPE_CHOICES,
     })
@@ -348,6 +351,71 @@ def save_project_location(request):
         messages.error(request, f"Error saving project location: {str(e)}")
         return redirect('manage_locations')
 
+def save_project_combination(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
+
+    project_id = request.POST.get('project_id')
+    pl_location_type = request.POST.get('pl_location_type')
+    state_id = request.POST.get('state_id')
+    district_id = request.POST.get('district_id')
+    taluka_id = request.POST.get('taluka_id')
+    village_id = request.POST.get('village_id')
+
+    if not project_id or not pl_location_type:
+        return JsonResponse({'status': 'error', 'message': 'Project ID and Combination Type are required'}, status=400)
+
+    try:
+        project = get_object_or_404(Project, project_id=project_id)
+        pl_location_type = int(pl_location_type)
+
+        # Initialize combination fields
+        combination_data = {
+            'project_id': project,
+            'pl_location_type': pl_location_type,
+            'status': True,
+        }
+
+        # Set the appropriate location ID based on pl_location_type
+        if pl_location_type == 1:  # State
+            if not state_id:
+                return JsonResponse({'status': 'error', 'message': 'State ID is required for State combination type'}, status=400)
+            combination_data['st_id'] = get_object_or_404(StateHeaderAll, st_id=state_id)
+        elif pl_location_type == 2:  # District
+            if not district_id:
+                return JsonResponse({'status': 'error', 'message': 'District ID is required for District combination type'}, status=400)
+            district = get_object_or_404(DistrictHeaderAll, dist_id=district_id)
+            combination_data['st_id'] = district.st_id
+            combination_data['dist_id'] = district
+        elif pl_location_type == 3:  # Taluka
+            if not taluka_id:
+                return JsonResponse({'status': 'error', 'message': 'Taluka ID is required for Taluka combination type'}, status=400)
+            taluka = get_object_or_404(TalukaHeaderAll, tal_id=taluka_id)
+            combination_data['st_id'] = taluka.st_id
+            combination_data['dist_id'] = taluka.dist_id
+            combination_data['tal_id'] = taluka
+        elif pl_location_type == 4:  # Village
+            if not village_id:
+                return JsonResponse({'status': 'error', 'message': 'Village ID is required for Village combination type'}, status=400)
+            village = get_object_or_404(VillageHeaderAll, vil_id=village_id)
+            combination_data['st_id'] = village.st_id
+            combination_data['dist_id'] = village.dist_id
+            combination_data['tal_id'] = village.tal_id
+            combination_data['vil_id'] = village
+        else:
+            return JsonResponse({'status': 'error', 'message': 'Invalid combination type'}, status=400)
+
+        try:
+            project_combination = ProjectLocationDetailsAll.objects.create(**combination_data)
+            project_combination.full_clean()
+            project_combination.save()
+            return JsonResponse({'status': 'success', 'message': 'Project combination saved successfully'})
+        except (ValidationError, IntegrityError) as e:
+            return JsonResponse({'status': 'error', 'message': f'Failed to save project combination: {str(e)}'}, status=400)
+        
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Error saving project combination: {str(e)}'}, status=500)
+
 def get_districts(request, state_id):
     districts = DistrictHeaderAll.objects.filter(st_id=state_id, status=True).values('dist_id', 'dist_name')
     return JsonResponse({'districts': list(districts)})
@@ -363,7 +431,7 @@ def get_villages(request, taluka_id):
 def search_states(request):
     query = request.GET.get('query', '')
     states = StateHeaderAll.objects.filter(
-        Q(st_name__icontains=query)
+        Q(st_name__icontains=query) & Q(st_status=True)
     ).values('st_id', 'st_name', 'st_status')
     return JsonResponse({
         'states': list(states),
@@ -411,36 +479,6 @@ def search_villages(request):
         'villages': list(villages),
         'has_results': len(villages) > 0
     })
-
-def add_state(request):
-    if request.method != 'POST':
-        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
-    
-    state_name = request.POST.get('state_name')
-    if not state_name:
-        return JsonResponse({'status': 'error', 'message': 'State name is required'}, status=400)
-    
-    state_name = state_name.strip()
-    if len(state_name) < 2:
-        return JsonResponse({'status': 'error', 'message': 'State name must be at least 2 characters long'}, status=400)
-    
-    try:
-        state = StateHeaderAll.objects.create(
-            st_name=state_name,
-            st_status=True
-        )
-        return JsonResponse({
-            'status': 'success',
-            'state': {
-                'st_id': state.st_id,
-                'st_name': state.st_name,
-                'st_status': state.st_status
-            }
-        })
-    except IntegrityError:
-        return JsonResponse({'status': 'error', 'message': 'A state with this name already exists'}, status=400)
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': f'Failed to add state: {str(e)}'}, status=500)
 
 def add_district(request):
     if request.method != 'POST':
