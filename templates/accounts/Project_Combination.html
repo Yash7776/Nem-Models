@@ -28,36 +28,24 @@
         </select>
     </div>
 
-    <!-- State Search -->
-    <div class="col-md-6">
-        <label for="state_search" class="form-label">Search State</label>
-        <input type="text" id="state_search" class="form-control" placeholder="e.g., Maharashtra">
-        <input type="hidden" id="state_id" name="state_id">
-        <div id="state_results" class="mt-2"></div>
-    </div>
-
-    <!-- District Search -->
-    <div class="col-md-6">
-        <label for="district_search" class="form-label">Search District</label>
-        <input type="text" id="district_search" class="form-control" placeholder="e.g., Pune" disabled>
-        <input type="hidden" id="district_id" name="district_id">
-        <div id="district_results" class="mt-2"></div>
-    </div>
-
-    <!-- Tehsil (Taluka) Search -->
-    <div class="col-md-6">
-        <label for="tehsil_search" class="form-label">Search Tehsil</label>
-        <input type="text" id="tehsil_search" class="form-control" placeholder="e.g., Haveli" disabled>
-        <input type="hidden" id="taluka_id" name="taluka_id">
-        <div id="tehsil_results" class="mt-2"></div>
-    </div>
-
-    <!-- Village Search -->
-    <div class="col-md-6">
-        <label for="village_search" class="form-label">Search Village</label>
-        <input type="text" id="village_search" class="form-control" placeholder="e.g., Wagholi" disabled>
-        <input type="hidden" id="village_id" name="village_id">
-        <div id="village_results" class="mt-2"></div>
+    <!-- Accordion for Location Selection -->
+    <div class="col-12">
+        <div class="accordion accordion-flush" id="locationAccordion">
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingLocation">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseLocation" aria-expanded="false" aria-controls="collapseLocation">
+                        Location Selection
+                    </button>
+                </h2>
+                <div id="collapseLocation" class="accordion-collapse collapse" aria-labelledby="headingLocation" data-bs-parent="#locationAccordion">
+                    <div class="accordion-body">
+                        <div id="location-hierarchy">
+                            <!-- States will be loaded dynamically via AJAX -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Submit Button -->
@@ -68,25 +56,87 @@
 </form>
 
 <style>
-    .search-results {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        max-height: 200px;
-        overflow-y: auto;
-        border: 1px solid #ddd;
-        border-radius: 4px;
+    /* Accordion Styling */
+    .accordion-button {
+        background: linear-gradient(90deg, #007bff 0%, #00c4ff 100%) !important;
+        color: #fff !important;
+        border: none;
+        border-radius: 8px;
+        padding: 16px 20px;
+        font-size: 16px;
+        font-weight: 500;
+        transition: background 0.3s ease, box-shadow 0.3s ease;
+        box-shadow: 0 2px 6px rgba(0, 123, 255, 0.25);
     }
-    .search-results li {
-        padding: 8px 12px;
+
+    .accordion-button:not(.collapsed) {
+        background: linear-gradient(90deg, #0056b3 0%, #0099cc 100%) !important;
+        color: #fff !important;
+        box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+    }
+
+    .accordion-button:focus {
+        box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.4);
+        outline: none;
+    }
+
+    .accordion-button::after {
+        transition: transform 0.3s ease;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='%23ffffff' viewBox='0 0 16 16'%3e%3cpath d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+    }
+
+    .accordion-button:not(.collapsed)::after {
+        transform: rotate(180deg);
+    }
+
+    .accordion-item {
+        border: none;
+        border-radius: 10px;
+        margin-bottom: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    }
+
+    .accordion-body {
+        background-color: #fdfdfd;
+        padding: 20px;
+        transition: background-color 0.3s ease;
+    }
+
+    .accordion-flush .accordion-item {
+        border-radius: 8px;
+        margin: 8px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .accordion-flush .accordion-button {
+        background: linear-gradient(90deg, #0d6efd 0%, #adb5bd 100%) !important;
+        border-radius: 8px;
+    }
+
+    .accordion-flush .accordion-button:not(.collapsed) {
+        background: linear-gradient(90deg, #0b5ed7 0%, #6c757d 100%) !important;
+    }
+
+    .form-check {
+        margin-bottom: 10px;
+    }
+
+    .form-check-input {
+        margin-top: 0.3rem;
+    }
+
+    .ms-4 {
+        margin-left: 1.5rem !important;
+    }
+
+    .accordion-collapse {
+        transition: max-height 0.4s ease-in-out;
+    }
+
+    .accordion-button:hover {
+        filter: brightness(1.1);
         cursor: pointer;
-        border-bottom: 1px solid #eee;
-    }
-    .search-results li:last-child {
-        border-bottom: none;
-    }
-    .search-results li:hover {
-        background-color: #f8f9fa;
     }
 </style>
 
@@ -110,228 +160,333 @@ function getCookie(name) {
 const csrftoken = getCookie('csrftoken');
 
 $(document).ready(function() {
-    let selectedStateId = null;
-    let selectedDistrictId = null;
-    let selectedTalukaId = null;
-    let selectedVillageId = null;
+    // Load states on page load
+    loadStates();
 
-    // Function to clear lower-level fields and results
-    function clearLowerLevelFields(level) {
-        if (level <= 1) { // State changed
-            $('#district_search').val('').prop('disabled', true);
-            $('#district_results').html('');
-            $('#district_id').val('');
-            selectedDistrictId = null;
-        }
-        if (level <= 2) { // State or District changed
-            $('#tehsil_search').val('').prop('disabled', true);
-            $('#tehsil_results').html('');
-            $('#taluka_id').val('');
-            selectedTalukaId = null;
-        }
-        if (level <= 3) { // State, District, or Tehsil changed
-            $('#village_search').val('').prop('disabled', true);
-            $('#village_results').html('');
-            $('#village_id').val('');
-            selectedVillageId = null;
-        }
+    // Function to load states
+    function loadStates() {
+        $.ajax({
+            url: '{% url "search_states" %}',
+            type: 'GET',
+            data: { query: '' },
+            success: function(data) {
+                let html = '';
+                if (data.has_results) {
+                    data.states.forEach(state => {
+                        html += `
+                            <div class="accordion accordion-flush" id="stateAccordion${state.st_id}">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="stateHeading${state.st_id}">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#stateCollapse${state.st_id}" aria-expanded="false" aria-controls="stateCollapse${state.st_id}">
+                                            ${state.st_name}
+                                        </button>
+                                    </h2>
+                                    <div id="stateCollapse${state.st_id}" class="accordion-collapse collapse" aria-labelledby="stateHeading${state.st_id}" data-bs-parent="#stateAccordion${state.st_id}">
+                                        <div class="accordion-body">
+                                            <div class="form-check">
+                                                <input class="form-check-input state-all" type="checkbox" value="${state.st_id}" id="stateAll${state.st_id}" name="state_ids[]">
+                                                <label class="form-check-label" for="stateAll${state.st_id}">All</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input state-checkbox" type="checkbox" value="${state.st_id}" id="state${state.st_id}" name="state_ids[]">
+                                                <label class="form-check-label" for="state${state.st_id}">${state.st_name}</label>
+                                            </div>
+                                            <div id="districts${state.st_id}" class="ms-4"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
+                    });
+                } else {
+                    html = '<p>No states found.</p>';
+                }
+                $('#location-hierarchy').html(html);
+
+                // Handle state "All" checkbox
+                $('.state-all').on('change', function() {
+                    const stateId = $(this).val();
+                    const isChecked = $(this).is(':checked');
+                    $(`#state${stateId}`).prop('checked', !isChecked).prop('disabled', isChecked);
+                    $(`#districts${stateId} input`).prop('checked', isChecked).prop('disabled', isChecked);
+                    if (isChecked) {
+                        $(`#districts${stateId}`).empty();
+                    } else {
+                        loadDistricts(stateId);
+                    }
+                });
+
+                // Load districts when state accordion is expanded
+                $('.state-checkbox').on('change', function() {
+                    const stateId = $(this).val();
+                    if ($(this).is(':checked') && !$(`#stateAll${stateId}`).is(':checked')) {
+                        loadDistricts(stateId);
+                    } else {
+                        $(`#districts${stateId}`).empty();
+                    }
+                });
+            },
+            error: function(xhr) {
+                $('#location-hierarchy').html('<p class="text-danger">Error loading states.</p>');
+            }
+        });
     }
 
-    // State Search
-    $('#state_search').on('input', function() {
-        const query = $(this).val().trim();
-        clearLowerLevelFields(1);
-        if (query.length >= 1) {
-            $.ajax({
-                url: '{% url "search_states" %}',
-                type: 'GET',
-                data: { query: query },
-                success: function(data) {
-                    let html = '<ul class="search-results">';
-                    if (data.has_results) {
-                        $.each(data.states, function(index, state) {
-                            html += `<li class="state-row" data-id="${state.st_id}" data-name="${state.st_name}">
-                                ${state.st_name}
-                            </li>`;
-                        });
-                    }
-                    html += '</ul>';
-                    $('#state_results').html(html);
-
-                    $('.state-row').on('click', function() {
-                        selectedStateId = $(this).data('id');
-                        const stateName = $(this).data('name');
-                        $('#state_search').val(stateName);
-                        $('#state_id').val(selectedStateId);
-                        $('#state_results').html('');
-                        $('#district_search').prop('disabled', false);
+    // Function to load districts for a state
+    function loadDistricts(stateId) {
+        $.ajax({
+            url: '{% url "search_districts" %}',
+            type: 'GET',
+            data: { state_id: stateId, query: '' },
+            success: function(data) {
+                let html = '';
+                if (data.has_results) {
+                    data.districts.forEach(district => {
+                        html += `
+                            <div class="accordion accordion-flush" id="districtAccordion${district.dist_id}">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="districtHeading${district.dist_id}">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#districtCollapse${district.dist_id}" aria-expanded="false" aria-controls="districtCollapse${district.dist_id}">
+                                            ${district.dist_name}
+                                        </button>
+                                    </h2>
+                                    <div id="districtCollapse${district.dist_id}" class="accordion-collapse collapse" aria-labelledby="districtHeading${district.dist_id}" data-bs-parent="#districtAccordion${district.dist_id}">
+                                        <div class="accordion-body">
+                                            <div class="form-check">
+                                                <input class="form-check-input district-all" type="checkbox" value="${district.dist_id}" id="districtAll${district.dist_id}" name="district_ids[]">
+                                                <label class="form-check-label" for="districtAll${district.dist_id}">All</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input district-checkbox" type="checkbox" value="${district.dist_id}" id="district${district.dist_id}" name="district_ids[]">
+                                                <label class="form-check-label" for="district${district.dist_id}">${district.dist_name}</label>
+                                            </div>
+                                            <div id="talukas${district.dist_id}" class="ms-4"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
                     });
-                },
-                error: function(xhr) {
-                    let errorMsg = 'Error fetching states.';
-                    if (xhr.responseJSON && xhr.responseJSON.message) {
-                        errorMsg = xhr.responseJSON.message;
-                    }
-                    $('#state_results').html(`<p class="text-danger">Error: ${errorMsg}</p>`);
+                } else {
+                    html = '<p>No districts found.</p>';
                 }
-            });
-        } else {
-            $('#state_results').html('');
-            $('#state_id').val('');
-            selectedStateId = null;
-        }
-    });
+                $(`#districts${stateId}`).html(html);
 
-    // District Search
-    $('#district_search').on('input', function() {
-        if (!selectedStateId) return;
-        const query = $(this).val().trim();
-        clearLowerLevelFields(2);
-        if (query.length >= 1) {
-            $.ajax({
-                url: '{% url "search_districts" %}',
-                type: 'GET',
-                data: { query: query, state_id: selectedStateId },
-                success: function(data) {
-                    let html = '<ul class="search-results">';
-                    if (data.has_results) {
-                        $.each(data.districts, function(index, district) {
-                            html += `<li class="district-row" data-id="${district.dist_id}" data-name="${district.dist_name}">
-                                ${district.dist_name}
-                            </li>`;
-                        });
+                // Handle district "All" checkbox
+                $('.district-all').on('change', function() {
+                    const districtId = $(this).val();
+                    const isChecked = $(this).is(':checked');
+                    $(`#district${districtId}`).prop('checked', !isChecked).prop('disabled', isChecked);
+                    $(`#talukas${districtId} input`).prop('checked', isChecked).prop('disabled', isChecked);
+                    if (isChecked) {
+                        $(`#talukas${districtId}`).empty();
+                    } else {
+                        loadTalukas(districtId);
                     }
-                    html += '</ul>';
-                    $('#district_results').html(html);
+                });
 
-                    $('.district-row').on('click', function() {
-                        selectedDistrictId = $(this).data('id');
-                        const districtName = $(this).data('name');
-                        $('#district_search').val(districtName);
-                        $('#district_id').val(selectedDistrictId);
-                        $('#district_results').html('');
-                        $('#tehsil_search').prop('disabled', false);
+                // Load talukas when district accordion is expanded
+                $('.district-checkbox').on('change', function() {
+                    const districtId = $(this).val();
+                    if ($(this).is(':checked') && !$(`#districtAll${districtId}`).is(':checked')) {
+                        loadTalukas(districtId);
+                    } else {
+                        $(`#talukas${districtId}`).empty();
+                    }
+                });
+            },
+            error: function(xhr) {
+                $(`#districts${stateId}`).html('<p class="text-danger">Error loading districts.</p>');
+            }
+        });
+    }
+
+    // Function to load talukas for a district
+    function loadTalukas(districtId) {
+        $.ajax({
+            url: '{% url "search_talukas" %}',
+            type: 'GET',
+            data: { district_id: districtId, query: '' },
+            success: function(data) {
+                let html = '';
+                if (data.has_results) {
+                    data.talukas.forEach(taluka => {
+                        html += `
+                            <div class="accordion accordion-flush" id="talukaAccordion${taluka.tal_id}">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="talukaHeading${taluka.tal_id}">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#talukaCollapse${taluka.tal_id}" aria-expanded="false" aria-controls="talukaCollapse${taluka.tal_id}">
+                                            ${taluka.tal_name}
+                                        </button>
+                                    </h2>
+                                    <div id="talukaCollapse${taluka.tal_id}" class="accordion-collapse collapse" aria-labelledby="talukaHeading${taluka.tal_id}" data-bs-parent="#talukaAccordion${taluka.tal_id}">
+                                        <div class="accordion-body">
+                                            <div class="form-check">
+                                                <input class="form-check-input taluka-all" type="checkbox" value="${taluka.tal_id}" id="talukaAll${taluka.tal_id}" name="taluka_ids[]">
+                                                <label class="form-check-label" for="talukaAll${taluka.tal_id}">All</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input taluka-checkbox" type="checkbox" value="${taluka.tal_id}" id="taluka${taluka.tal_id}" name="taluka_ids[]">
+                                                <label class="form-check-label" for="taluka${taluka.tal_id}">${taluka.tal_name}</label>
+                                            </div>
+                                            <div id="villages${taluka.tal_id}" class="ms-4"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
                     });
-                },
-                error: function(xhr) {
-                    let errorMsg = 'Error fetching districts.';
-                    if (xhr.responseJSON && xhr.responseJSON.message) {
-                        errorMsg = xhr.responseJSON.message;
-                    }
-                    $('#district_results').html(`<p class="text-danger">Error: ${errorMsg}</p>`);
+                } else {
+                    html = '<p>No talukas found.</p>';
                 }
-            });
-        } else {
-            $('#district_results').html('');
-            $('#district_id').val('');
-            selectedDistrictId = null;
-        }
-    });
+                $(`#talukas${districtId}`).html(html);
 
-    // Tehsil (Taluka) Search
-    $('#tehsil_search').on('input', function() {
-        if (!selectedDistrictId) return;
-        const query = $(this).val().trim();
-        clearLowerLevelFields(3);
-        if (query.length >= 1) {
-            $.ajax({
-                url: '{% url "search_talukas" %}',
-                type: 'GET',
-                data: { query: query, district_id: selectedDistrictId },
-                success: function(data) {
-                    let html = '<ul class="search-results">';
-                    if (data.has_results) {
-                        $.each(data.talukas, function(index, taluka) {
-                            html += `<li class="tehsil-row" data-id="${taluka.tal_id}" data-name="${taluka.tal_name}">
-                                ${taluka.tal_name}
-                            </li>`;
-                        });
+                // Handle taluka "All" checkbox
+                $('.taluka-all').on('change', function() {
+                    const talukaId = $(this).val();
+                    const isChecked = $(this).is(':checked');
+                    $(`#taluka${talukaId}`).prop('checked', !isChecked).prop('disabled', isChecked);
+                    $(`#villages${talukaId} input`).prop('checked', isChecked).prop('disabled', isChecked);
+                    if (isChecked) {
+                        $(`#villages${talukaId}`).empty();
+                    } else {
+                        loadVillages(talukaId);
                     }
-                    html += '</ul>';
-                    $('#tehsil_results').html(html);
+                });
 
-                    $('.tehsil-row').on('click', function() {
-                        selectedTalukaId = $(this).data('id');
-                        const tehsilName = $(this).data('name');
-                        $('#tehsil_search').val(tehsilName);
-                        $('#taluka_id').val(selectedTalukaId);
-                        $('#tehsil_results').html('');
-                        $('#village_search').prop('disabled', false);
+                // Load villages when taluka accordion is expanded
+                $('.taluka-checkbox').on('change', function() {
+                    const talukaId = $(this).val();
+                    if ($(this).is(':checked') && !$(`#talukaAll${talukaId}`).is(':checked')) {
+                        loadVillages(talukaId);
+                    } else {
+                        $(`#villages${talukaId}`).empty();
+                    }
+                });
+            },
+            error: function(xhr) {
+                $(`#talukas${districtId}`).html('<p class="text-danger">Error loading talukas.</p>');
+            }
+        });
+    }
+
+    // Function to load villages for a taluka
+    function loadVillages(talukaId) {
+        $.ajax({
+            url: '{% url "search_villages" %}',
+            type: 'GET',
+            data: { taluka_id: talukaId, query: '' },
+            success: function(data) {
+                let html = '';
+                if (data.has_results) {
+                    data.villages.forEach(village => {
+                        html += `
+                            <div class="form-check">
+                                <input class="form-check-input village-checkbox" type="checkbox" value="${village.vil_id}" id="village${village.vil_id}" name="village_ids[]">
+                                <label class="form-check-label" for="village${village.vil_id}">${village.name}</label>
+                            </div>`;
                     });
-                },
-                error: function(xhr) {
-                    let errorMsg = 'Error fetching tehsils.';
-                    if (xhr.responseJSON && xhr.responseJSON.message) {
-                        errorMsg = xhr.responseJSON.message;
-                    }
-                    $('#tehsil_results').html(`<p class="text-danger">Error: ${errorMsg}</p>`);
+                } else {
+                    html = '<p>No villages found.</p>';
                 }
-            });
-        } else {
-            $('#tehsil_results').html('');
-            $('#taluka_id').val('');
-            selectedTalukaId = null;
-        }
-    });
-
-    // Village Search
-    $('#village_search').on('input', function() {
-        if (!selectedTalukaId) return;
-        const query = $(this).val().trim();
-        if (query.length >= 1) {
-            $.ajax({
-                url: '{% url "search_villages" %}',
-                type: 'GET',
-                data: { query: query, taluka_id: selectedTalukaId },
-                success: function(data) {
-                    let html = '<ul class="search-results">';
-                    if (data.has_results) {
-                        $.each(data.villages, function(index, village) {
-                            html += `<li class="village-row" data-id="${village.vil_id}" data-name="${village.name}">
-                                ${village.name}
-                            </li>`;
-                        });
-                    }
-                    html += '</ul>';
-                    $('#village_results').html(html);
-
-                    $('.village-row').on('click', function() {
-                        selectedVillageId = $(this).data('id');
-                        const villageName = $(this).data('name');
-                        $('#village_search').val(villageName);
-                        $('#village_id').val(selectedVillageId);
-                        $('#village_results').html('');
-                    });
-                },
-                error: function(xhr) {
-                    let errorMsg = 'Error fetching villages.';
-                    if (xhr.responseJSON && xhr.responseJSON.message) {
-                        errorMsg = xhr.responseJSON.message;
-                    }
-                    $('#village_results').html(`<p class="text-danger">Error: ${errorMsg}</p>`);
-                }
-            });
-        } else {
-            $('#village_results').html('');
-            $('#village_id').val('');
-            selectedVillageId = null;
-        }
-    });
+                $(`#villages${talukaId}`).html(html);
+            },
+            error: function(xhr) {
+                $(`#villages${talukaId}`).html('<p class="text-danger">Error loading villages.</p>');
+            }
+        });
+    }
 
     // Form Submission
     $('#project-combination-form').on('submit', function(e) {
         e.preventDefault();
+
+        // Collect selected location IDs
+        const selectedLocations = {
+            states: [],
+            districts: [],
+            talukas: [],
+            villages: []
+        };
+
+        // Collect checked locations
+        $('input[name="state_ids[]"]:checked').each(function() {
+            selectedLocations.states.push($(this).val());
+        });
+        $('input[name="district_ids[]"]:checked').each(function() {
+            selectedLocations.districts.push($(this).val());
+        });
+        $('input[name="taluka_ids[]"]:checked').each(function() {
+            selectedLocations.talukas.push($(this).val());
+        });
+        $('input[name="village_ids[]"]:checked').each(function() {
+            selectedLocations.villages.push($(this).val());
+        });
+
+        // Get the selected location type
+        const pl_location_type = $('#pl_location_type').val();
+
+        // Validate that only one location ID is selected based on the location type
+        let location_id = null;
+        let errorMessage = null;
+
+        if (pl_location_type == '1') {
+            if (selectedLocations.states.length !== 1 || selectedLocations.districts.length > 0 || selectedLocations.talukas.length > 0 || selectedLocations.villages.length > 0) {
+                errorMessage = 'Please select exactly one state for State location type.';
+            } else {
+                location_id = selectedLocations.states[0];
+            }
+        } else if (pl_location_type == '2') {
+            if (selectedLocations.districts.length !== 1 || selectedLocations.talukas.length > 0 || selectedLocations.villages.length > 0) {
+                errorMessage = 'Please select exactly one district for District location type.';
+            } else {
+                location_id = selectedLocations.districts[0];
+            }
+        } else if (pl_location_type == '3') {
+            if (selectedLocations.talukas.length !== 1 || selectedLocations.villages.length > 0) {
+                errorMessage = 'Please select exactly one taluka for Taluka location type.';
+            } else {
+                location_id = selectedLocations.talukas[0];
+            }
+        } else if (pl_location_type == '4') {
+            if (selectedLocations.villages.length !== 1) {
+                errorMessage = 'Please select exactly one village for Village location type.';
+            } else {
+                location_id = selectedLocations.villages[0];
+            }
+        } else {
+            errorMessage = 'Please select a valid location type.';
+        }
+
+        if (errorMessage) {
+            alert(errorMessage);
+            return;
+        }
+
+        // Prepare form data
+        const formData = {
+            project_id: $('#project_id').val(),
+            pl_location_type: pl_location_type
+        };
+
+        if (pl_location_type == '1') {
+            formData.state_id = location_id;
+        } else if (pl_location_type == '2') {
+            formData.district_id = location_id;
+        } else if (pl_location_type == '3') {
+            formData.taluka_id = location_id;
+        } else if (pl_location_type == '4') {
+            formData.village_id = location_id;
+        }
+
         $.ajax({
             url: $(this).attr('action'),
             type: 'POST',
             headers: { 'X-CSRFToken': csrftoken },
-            data: $(this).serialize(),
+            data: formData,
             success: function(data) {
                 if (data.status === 'success') {
                     alert('Project combination saved successfully.');
                     $('#project-combination-form')[0].reset();
-                    clearLowerLevelFields(1);
-                    $('#state_id').val('');
+                    $('#location-hierarchy').empty();
+                    loadStates();
                 } else {
                     alert('Error: ' + (data.message || 'Failed to save project combination.'));
                 }
