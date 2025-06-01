@@ -549,51 +549,96 @@
 
 <style>
     /* Accordion Styling from CodePen */
-    .accordion-button {
-        background: linear-gradient(90deg, #007bff 0%, #00c4ff 100%) !important;
-        color: #fff !important;
-        border: none;
-        border-radius: 5px;
-        padding: 15px;
-        font-size: 16px;
-        font-weight: 500;
-        transition: all 0.3s ease;
-    }
-    .accordion-button:not(.collapsed) {
-        background: linear-gradient(90deg, #0056b3 0%, #0099cc 100%) !important;
-        color: #fff !important;
-        box-shadow: inset 0 -1px 0 rgba(0,0,0,0.125);
-    }
-    .accordion-button:focus {
-        box-shadow: 0 0 0 0.25rem rgba(0,123,255,0.25);
-        outline: none;
-    }
-    .accordion-button::after {
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23ffffff'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 11.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
-    }
-    .accordion-item {
-        border: none;
-        border-radius: 8px;
-        margin-bottom: 10px;
-        overflow: hidden;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .accordion-body {
-        background-color: #f8f9fa;
-        padding: 20px;
-    }
-    .accordion-flush .accordion-item {
-        border-radius: 0;
-        box-shadow: none;
-        margin-bottom: 0;
-    }
-    .accordion-flush .accordion-button {
-        border-radius: 0;
-        background: linear-gradient(90deg, #6c757d 0%, #adb5bd 100%) !important;
-    }
-    .accordion-flush .accordion-button:not(.collapsed) {
-        background: linear-gradient(90deg, #5a6268 0%, #868e96 100%) !important;
-    }
+    /* Accordion Button Styling */
+.accordion-button {
+    background: linear-gradient(90deg, #007bff 0%, #00c4ff 100%) !important;
+    color: #fff !important;
+    border: none;
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-size: 16px;
+    font-weight: 500;
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 2px 6px rgba(0, 123, 255, 0.25);
+}
+
+.accordion-button:not(.collapsed) {
+    background: linear-gradient(90deg, #0056b3 0%, #0099cc 100%) !important;
+    color: #fff !important;
+    box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.15);
+}
+
+.accordion-button:focus {
+    box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.4);
+    outline: none;
+}
+
+/* Smooth arrow */
+.accordion-button::after {
+    transition: transform 0.3s ease;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='%23ffffff' viewBox='0 0 16 16'%3e%3cpath d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+}
+
+.accordion-button:not(.collapsed)::after {
+    transform: rotate(180deg);
+}
+
+/* Accordion Item */
+.accordion-item {
+    border: none;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* Accordion Body */
+.accordion-body {
+    background-color: #fdfdfd;
+    padding: 20px;
+    transition: background-color 0.3s ease;
+}
+
+/* Flush Style Overrides */
+.accordion-flush .accordion-item {
+    border-radius: 8px;
+    margin: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.accordion-flush .accordion-button {
+    background: linear-gradient(90deg, #0d6efd 0%, #adb5bd 100%) !important;
+    border-radius: 8px;
+}
+
+.accordion-flush .accordion-button:not(.collapsed) {
+    background: linear-gradient(90deg, #0b5ed7 0%, #6c757d 100%) !important;
+}
+
+/* Checkboxes spacing */
+.form-check {
+    margin-bottom: 10px;
+}
+
+.form-check-input {
+    margin-top: 0.3rem;
+}
+
+/* Indented accordion (Taluka, Village levels) */
+.ms-4 {
+    margin-left: 1.5rem !important;
+}
+
+/* Smooth accordion transitions */
+.accordion-collapse {
+    transition: max-height 0.4s ease-in-out;
+}
+.accordion-button:hover {
+    filter: brightness(1.1);
+    cursor: pointer;
+}
+
+
 
     /* Choices.js Styling */
     .choices__inner {
