@@ -70,6 +70,7 @@ def all_users(request):
         'user_type_choices': User_header_all.USER_TYPE_CHOICES,
     })
 
+
 def create_user(request):
     profiles = Profile_header_all.objects.all()
     departments = Department.objects.all()
@@ -82,8 +83,12 @@ def create_user(request):
         mobile_no = request.POST.get('mobile_no', '')
         user_type = request.POST.get('user_type')
         dept_id = request.POST.get('dept_id', '')
-        project_ids = request.POST.getlist('project_ids[]')  # Get list of selected project IDs
-        profile_ids = request.POST.getlist('profile_ids[]')  # Get list of selected profile IDs
+        project_ids = request.POST.getlist('project_ids[]')
+        profile_ids = request.POST.getlist('profile_ids[]')
+        state_ids = request.POST.getlist('state_ids[]')
+        district_ids = request.POST.getlist('district_ids[]')
+        taluka_ids = request.POST.getlist('taluka_ids[]')
+        village_ids = request.POST.getlist('village_ids[]')
 
         existing_user = User_header_all.objects.filter(username=username).first()
         if existing_user:
@@ -137,6 +142,16 @@ def create_user(request):
                 user_type=int(user_type),
                 status=1,
             )
+
+            # Assign location IDs if provided
+            if state_ids and 'all' not in state_ids:  # Check if specific states are selected
+                user.st_id = StateHeaderAll.objects.filter(st_id__in=state_ids).first()
+            if district_ids and 'all' not in district_ids:
+                user.dist_id = DistrictHeaderAll.objects.filter(dist_id__in=district_ids).first()
+            if taluka_ids and 'all' not in taluka_ids:
+                user.tal_id = TalukaHeaderAll.objects.filter(tal_id__in=taluka_ids).first()
+            if village_ids and 'all' not in village_ids:
+                user.vil_id = VillageHeaderAll.objects.filter(vil_id__in=village_ids).first()
 
             user.full_clean()
             user.save()

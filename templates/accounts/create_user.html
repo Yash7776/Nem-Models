@@ -83,6 +83,27 @@
                 </select>
                 <small class="text-muted">Optionally select one or more profiles.</small>
             </div>
+
+            <!-- Accordion for Location Selection -->
+            <div class="col-12">
+                <div class="accordion accordion-flush" id="locationAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingLocation">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseLocation" aria-expanded="false" aria-controls="collapseLocation">
+                                Location Access
+                            </button>
+                        </h2>
+                        <div id="collapseLocation" class="accordion-collapse collapse" aria-labelledby="headingLocation" data-bs-parent="#locationAccordion">
+                            <div class="accordion-body">
+                                <div id="location-hierarchy">
+                                    <!-- States will be loaded dynamically via AJAX -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="col-12 mt-4">
                 <div class="d-flex justify-content-between">
                     <a href="{% url 'all_users' %}" class="btn btn-outline-secondary">
@@ -100,8 +121,27 @@
 <!-- Include Choices.js CSS and JS from CDN -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
 <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<!-- Include jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <script>
+    // Function to get CSRF token from cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
     function validateUsernameEmail() {
         const usernameInput = document.getElementById('username');
         const emailInput = document.getElementById('email');
@@ -159,6 +199,44 @@
         const mobileInput = document.getElementById('mobile_no');
         const isUsernameEmailValid = validateUsernameEmail();
         const isMobileValid = validateMobileNo(mobileInput);
+
+        // Collect selected location IDs
+        const selectedLocations = {
+            states: [],
+            districts: [],
+            talukas: [],
+            villages: []
+        };
+
+        // Collect checked locations
+        $('input[name="state_ids[]"]:checked').each(function() {
+            selectedLocations.states.push($(this).val());
+        });
+        $('input[name="district_ids[]"]:checked').each(function() {
+            selectedLocations.districts.push($(this).val());
+        });
+        $('input[name="taluka_ids[]"]:checked').each(function() {
+            selectedLocations.talukas.push($(this).val());
+        });
+        $('input[name="village_ids[]"]:checked').each(function() {
+            selectedLocations.villages.push($(this).val());
+        });
+
+        // Add hidden inputs for selected locations
+        $('#create-user-form').find('input[name="state_ids[]"], input[name="district_ids[]"], input[name="taluka_ids[]"], input[name="village_ids[]"]').remove();
+        selectedLocations.states.forEach(id => {
+            $('#create-user-form').append(`<input type="hidden" name="state_ids[]" value="${id}">`);
+        });
+        selectedLocations.districts.forEach(id => {
+            $('#create-user-form').append(`<input type="hidden" name="district_ids[]" value="${id}">`);
+        });
+        selectedLocations.talukas.forEach(id => {
+            $('#create-user-form').append(`<input type="hidden" name="taluka_ids[]" value="${id}">`);
+        });
+        selectedLocations.villages.forEach(id => {
+            $('#create-user-form').append(`<input type="hidden" name="village_ids[]" value="${id}">`);
+        });
+
         return isUsernameEmailValid && isMobileValid;
     }
 
@@ -170,7 +248,7 @@
         itemSelectText: '',
         noResultsText: 'No profiles found',
         placeholderValue: 'Select profiles',
-        maxItemCount: -1, // Allow unlimited selections
+        maxItemCount: -1,
     });
 
     // Initialize Choices.js for Projects
@@ -181,7 +259,7 @@
         itemSelectText: '',
         noResultsText: 'No projects found',
         placeholderValue: 'Select projects',
-        maxItemCount: -1, // Allow unlimited selections
+        maxItemCount: -1,
     });
 
     // AJAX to fetch projects based on department
@@ -232,11 +310,292 @@
             projectChoices.disable();
             projectChoices.setChoices([{ value: '', label: 'Select a department to view projects', disabled: true }]);
         }
+
+        // Load states for location hierarchy
+        loadStates();
     });
+
+    // Function to load states
+    function loadStates() {
+        $.ajax({
+            url: '{% url "search_states" %}',
+            type: 'GET',
+            data: { query: '' },
+            success: function(data) {
+                let html = '';
+                if (data.has_results) {
+                    data.states.forEach(state => {
+                        html += `
+                            <div class="accordion accordion-flush" id="stateAccordion${state.st_id}">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="stateHeading${state.st_id}">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#stateCollapse${state.st_id}" aria-expanded="false" aria-controls="stateCollapse${state.st_id}">
+                                            ${state.st_name}
+                                        </button>
+                                    </h2>
+                                    <div id="stateCollapse${state.st_id}" class="accordion-collapse collapse" aria-labelledby="stateHeading${state.st_id}" data-bs-parent="#stateAccordion${state.st_id}">
+                                        <div class="accordion-body">
+                                            <div class="form-check">
+                                                <input class="form-check-input state-all" type="checkbox" value="${state.st_id}" id="stateAll${state.st_id}" name="state_ids[]">
+                                                <label class="form-check-label" for="stateAll${state.st_id}">All</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input state-checkbox" type="checkbox" value="${state.st_id}" id="state${state.st_id}" name="state_ids[]">
+                                                <label class="form-check-label" for="state${state.st_id}">${state.st_name}</label>
+                                            </div>
+                                            <div id="districts${state.st_id}" class="ms-4"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
+                    });
+                } else {
+                    html = '<p>No states found.</p>';
+                }
+                $('#location-hierarchy').html(html);
+
+                // Handle state "All" checkbox
+                $('.state-all').on('change', function() {
+                    const stateId = $(this).val();
+                    const isChecked = $(this).is(':checked');
+                    $(`#state${stateId}`).prop('checked', !isChecked).prop('disabled', isChecked);
+                    $(`#districts${stateId} input`).prop('checked', isChecked).prop('disabled', isChecked);
+                    if (isChecked) {
+                        $(`#districts${stateId}`).empty();
+                    } else {
+                        loadDistricts(stateId);
+                    }
+                });
+
+                // Load districts when state accordion is expanded
+                $('.state-checkbox').on('change', function() {
+                    const stateId = $(this).val();
+                    if ($(this).is(':checked') && !$(`#stateAll${stateId}`).is(':checked')) {
+                        loadDistricts(stateId);
+                    } else {
+                        $(`#districts${stateId}`).empty();
+                    }
+                });
+            },
+            error: function(xhr) {
+                $('#location-hierarchy').html('<p class="text-danger">Error loading states.</p>');
+            }
+        });
+    }
+
+    // Function to load districts for a state
+    function loadDistricts(stateId) {
+        $.ajax({
+            url: '{% url "search_districts" %}',
+            type: 'GET',
+            data: { state_id: stateId, query: '' },
+            success: function(data) {
+                let html = '';
+                if (data.has_results) {
+                    data.districts.forEach(district => {
+                        html += `
+                            <div class="accordion accordion-flush" id="districtAccordion${district.dist_id}">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="districtHeading${district.dist_id}">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#districtCollapse${district.dist_id}" aria-expanded="false" aria-controls="districtCollapse${district.dist_id}">
+                                            ${district.dist_name}
+                                        </button>
+                                    </h2>
+                                    <div id="districtCollapse${district.dist_id}" class="accordion-collapse collapse" aria-labelledby="districtHeading${district.dist_id}" data-bs-parent="#districtAccordion${district.dist_id}">
+                                        <div class="accordion-body">
+                                            <div class="form-check">
+                                                <input class="form-check-input district-all" type="checkbox" value="${district.dist_id}" id="districtAll${district.dist_id}" name="district_ids[]">
+                                                <label class="form-check-label" for="districtAll${district.dist_id}">All</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input district-checkbox" type="checkbox" value="${district.dist_id}" id="district${district.dist_id}" name="district_ids[]">
+                                                <label class="form-check-label" for="district${district.dist_id}">${district.dist_name}</label>
+                                            </div>
+                                            <div id="talukas${district.dist_id}" class="ms-4"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
+                    });
+                } else {
+                    html = '<p>No districts found.</p>';
+                }
+                $(`#districts${stateId}`).html(html);
+
+                // Handle district "All" checkbox
+                $('.district-all').on('change', function() {
+                    const districtId = $(this).val();
+                    const isChecked = $(this).is(':checked');
+                    $(`#district${districtId}`).prop('checked', !isChecked).prop('disabled', isChecked);
+                    $(`#talukas${districtId} input`).prop('checked', isChecked).prop('disabled', isChecked);
+                    if (isChecked) {
+                        $(`#talukas${districtId}`).empty();
+                    } else {
+                        loadTalukas(districtId);
+                    }
+                });
+
+                // Load talukas when district accordion is expanded
+                $('.district-checkbox').on('change', function() {
+                    const districtId = $(this).val();
+                    if ($(this).is(':checked') && !$(`#districtAll${districtId}`).is(':checked')) {
+                        loadTalukas(districtId);
+                    } else {
+                        $(`#talukas${districtId}`).empty();
+                    }
+                });
+            },
+            error: function(xhr) {
+                $(`#districts${stateId}`).html('<p class="text-danger">Error loading districts.</p>');
+            }
+        });
+    }
+
+    // Function to load talukas for a district
+    function loadTalukas(districtId) {
+        $.ajax({
+            url: '{% url "search_talukas" %}',
+            type: 'GET',
+            data: { district_id: districtId, query: '' },
+            success: function(data) {
+                let html = '';
+                if (data.has_results) {
+                    data.talukas.forEach(taluka => {
+                        html += `
+                            <div class="accordion accordion-flush" id="talukaAccordion${taluka.tal_id}">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="talukaHeading${taluka.tal_id}">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#talukaCollapse${taluka.tal_id}" aria-expanded="false" aria-controls="talukaCollapse${taluka.tal_id}">
+                                            ${taluka.tal_name}
+                                        </button>
+                                    </h2>
+                                    <div id="talukaCollapse${taluka.tal_id}" class="accordion-collapse collapse" aria-labelledby="talukaHeading${taluka.tal_id}" data-bs-parent="#talukaAccordion${taluka.tal_id}">
+                                        <div class="accordion-body">
+                                            <div class="form-check">
+                                                <input class="form-check-input taluka-all" type="checkbox" value="${taluka.tal_id}" id="talukaAll${taluka.tal_id}" name="taluka_ids[]">
+                                                <label class="form-check-label" for="talukaAll${taluka.tal_id}">All</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input taluka-checkbox" type="checkbox" value="${taluka.tal_id}" id="taluka${taluka.tal_id}" name="taluka_ids[]">
+                                                <label class="form-check-label" for="taluka${taluka.tal_id}">${taluka.tal_name}</label>
+                                            </div>
+                                            <div id="villages${taluka.tal_id}" class="ms-4"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
+                    });
+                } else {
+                    html = '<p>No talukas found.</p>';
+                }
+                $(`#talukas${districtId}`).html(html);
+
+                // Handle taluka "All" checkbox
+                $('.taluka-all').on('change', function() {
+                    const talukaId = $(this).val();
+                    const isChecked = $(this).is(':checked');
+                    $(`#taluka${talukaId}`).prop('checked', !isChecked).prop('disabled', isChecked);
+                    $(`#villages${talukaId} input`).prop('checked', isChecked).prop('disabled', isChecked);
+                    if (isChecked) {
+                        $(`#villages${talukaId}`).empty();
+                    } else {
+                        loadVillages(talukaId);
+                    }
+                });
+
+                // Load villages when taluka accordion is expanded
+                $('.taluka-checkbox').on('change', function() {
+                    const talukaId = $(this).val();
+                    if ($(this).is(':checked') && !$(`#talukaAll${talukaId}`).is(':checked')) {
+                        loadVillages(talukaId);
+                    } else {
+                        $(`#villages${talukaId}`).empty();
+                    }
+                });
+            },
+            error: function(xhr) {
+                $(`#talukas${districtId}`).html('<p class="text-danger">Error loading talukas.</p>');
+            }
+        });
+    }
+
+    // Function to load villages for a taluka
+    function loadVillages(talukaId) {
+        $.ajax({
+            url: '{% url "search_villages" %}',
+            type: 'GET',
+            data: { taluka_id: talukaId, query: '' },
+            success: function(data) {
+                let html = '';
+                if (data.has_results) {
+                    data.villages.forEach(village => {
+                        html += `
+                            <div class="form-check">
+                                <input class="form-check-input village-checkbox" type="checkbox" value="${village.vil_id}" id="village${village.vil_id}" name="village_ids[]">
+                                <label class="form-check-label" for="village${village.vil_id}">${village.name}</label>
+                            </div>`;
+                    });
+                } else {
+                    html = '<p>No villages found.</p>';
+                }
+                $(`#villages${talukaId}`).html(html);
+            },
+            error: function(xhr) {
+                $(`#villages${talukaId}`).html('<p class="text-danger">Error loading villages.</p>');
+            }
+        });
+    }
 </script>
 
 <style>
-    /* Customize Choices.js appearance */
+    /* Accordion Styling from CodePen */
+    .accordion-button {
+        background: linear-gradient(90deg, #007bff 0%, #00c4ff 100%) !important;
+        color: #fff !important;
+        border: none;
+        border-radius: 5px;
+        padding: 15px;
+        font-size: 16px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    .accordion-button:not(.collapsed) {
+        background: linear-gradient(90deg, #0056b3 0%, #0099cc 100%) !important;
+        color: #fff !important;
+        box-shadow: inset 0 -1px 0 rgba(0,0,0,0.125);
+    }
+    .accordion-button:focus {
+        box-shadow: 0 0 0 0.25rem rgba(0,123,255,0.25);
+        outline: none;
+    }
+    .accordion-button::after {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23ffffff'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 11.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+    }
+    .accordion-item {
+        border: none;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .accordion-body {
+        background-color: #f8f9fa;
+        padding: 20px;
+    }
+    .accordion-flush .accordion-item {
+        border-radius: 0;
+        box-shadow: none;
+        margin-bottom: 0;
+    }
+    .accordion-flush .accordion-button {
+        border-radius: 0;
+        background: linear-gradient(90deg, #6c757d 0%, #adb5bd 100%) !important;
+    }
+    .accordion-flush .accordion-button:not(.collapsed) {
+        background: linear-gradient(90deg, #5a6268 0%, #868e96 100%) !important;
+    }
+
+    /* Choices.js Styling */
     .choices__inner {
         border: 1px solid #ced4da;
         border-radius: 0.25rem;
