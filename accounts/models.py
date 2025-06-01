@@ -72,11 +72,50 @@ class ProjectLocationDetailsAll(models.Model):
         return f"Project {self.project_id} - Type {self.get_pl_location_type_display()}"
 
 class Department(models.Model):
-    dept_id = models.CharField(max_length=20, unique=True)
-    name = models.CharField(max_length=100)
+    dept_id = models.CharField(max_length=20, unique=True, blank=True)  # Changed from CharField with manual input
+    dept_name = models.CharField(max_length=100, unique=True)
+    dept_full_name = models.CharField(max_length=100, unique=True)
+    dept_logo = models.ImageField(upload_to='department_logos/', null=True, blank=True)
+    dept_no_of_projects = models.PositiveIntegerField(default=0)
+    dept_reg_contractors = models.PositiveIntegerField(default=0)
+    dept_status = models.IntegerField(choices=[(0, 'Suspend'), (1, 'Active')], default=1)
+    dept_admins_users = models.PositiveIntegerField(default=0)
+    dept_action = models.IntegerField(choices=[(0, 'Suspend'), (1, 'Active')], default=1)
 
     def __str__(self):
-        return self.dept_id
+        return f"{self.dept_id} - {self.dept_name}"
+
+    def save(self, *args, **kwargs):
+        if not self.dept_id:
+            unique_id, _ = UniqueIdHeaderAll.objects.get_or_create(
+                table_name='department',
+                id_for='dept_id',
+                defaults={
+                    'prefix': 'DEP',
+                    'last_id': '',
+                    'created_on': timezone.now(),
+                    'modified_on': timezone.now()
+                }
+            )
+            self.dept_id = unique_id.get_next_id()
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_or_assign_dept_id(cls, dept_name):
+        existing_dept = cls.objects.filter(dept_name=dept_name).first()
+        if existing_dept:
+            return existing_dept.dept_id
+        unique_id, _ = UniqueIdHeaderAll.objects.get_or_create(
+            table_name='department',
+            id_for='dept_id',
+            defaults={
+                'prefix': 'DEP',
+                'last_id': '',
+                'created_on': timezone.now(),
+                'modified_on': timezone.now()
+            }
+        )
+        return unique_id.get_next_id()
 
 class Project(models.Model):
     # Choices for Yes/No dropdown
