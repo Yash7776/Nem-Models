@@ -3,6 +3,7 @@ from django.utils import timezone
 from django.core.validators import RegexValidator
 from django.contrib.auth.hashers import make_password
 from django.contrib.postgres.fields import ArrayField
+from django.db.models import JSONField
 import re
 
 class StateHeaderAll(models.Model):
@@ -56,15 +57,12 @@ class ProjectLocationDetailsAll(models.Model):
     )
 
     pl_id = models.AutoField(primary_key=True)
-    project_id = models.ForeignKey('Project',on_delete=models.SET_NULL,null=True,blank=True,related_name='project_assighment'
-    )
+    project_id = models.ForeignKey('Project', on_delete=models.SET_NULL, null=True, blank=True, related_name='project_assighment')
     pl_location_type = models.IntegerField(choices=LOCATION_TYPE_CHOICES)
-
     st_id = models.ForeignKey(StateHeaderAll, on_delete=models.CASCADE, null=True, blank=True)
     dist_id = models.ForeignKey(DistrictHeaderAll, on_delete=models.CASCADE, null=True, blank=True)
     tal_id = models.ForeignKey(TalukaHeaderAll, on_delete=models.CASCADE, null=True, blank=True)
     vil_id = models.ForeignKey(VillageHeaderAll, on_delete=models.CASCADE, null=True, blank=True)
-
     inserted = models.DateTimeField(auto_now_add=True)
     status = models.BooleanField(default=True)
 
@@ -72,7 +70,7 @@ class ProjectLocationDetailsAll(models.Model):
         return f"Project {self.project_id} - Type {self.get_pl_location_type_display()}"
 
 class Department(models.Model):
-    dept_id = models.CharField(max_length=20, unique=True, blank=True)  # Changed from CharField with manual input
+    dept_id = models.CharField(max_length=20, unique=True, blank=True)
     dept_name = models.CharField(max_length=100, unique=True)
     dept_full_name = models.CharField(max_length=100, unique=True)
     dept_logo = models.ImageField(upload_to='department_logos/', null=True, blank=True)
@@ -118,13 +116,12 @@ class Department(models.Model):
         return unique_id.get_next_id()
 
 class Project(models.Model):
-    # Choices for Yes/No dropdown
     YES_NO_CHOICES = [
         ('Yes', 'Yes'),
         ('No', 'No'),
     ]
 
-    project_id = models.CharField(max_length=20, unique=True, blank=True)  # Changed from AutoField
+    project_id = models.CharField(max_length=20, unique=True, blank=True)
     project_name = models.CharField(max_length=100)
     project_description = models.TextField(blank=True)
     display_order = models.IntegerField(default=0)
@@ -137,7 +134,7 @@ class Project(models.Model):
     from_KM = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     to_KM = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     department = models.ForeignKey(Department, on_delete=models.CASCADE, null=True, blank=True, related_name='projects')
-    step_statuses = models.JSONField(default=dict, blank=True)
+    step_statuses = JSONField(default=dict, blank=True)
     survey_properties = models.CharField(max_length=3, choices=YES_NO_CHOICES, default='Yes')
     field_survey = models.CharField(max_length=3, choices=YES_NO_CHOICES, default='No')
 
@@ -180,7 +177,7 @@ class Project(models.Model):
         return unique_id.get_next_id()
 
 class Profile_header_all(models.Model):
-    profile_id = models.CharField(max_length=20, unique=True,blank=True,null=True)
+    profile_id = models.CharField(max_length=20, unique=True, blank=True, null=True)
     profile_name = models.CharField(max_length=100)
     pro_form_ids = ArrayField(models.CharField(), default=list, blank=True, help_text="List of accessible Form IDs like ['F_MAN_001', 'F_MAIN_002']")
     pro_process_ids = ArrayField(models.CharField(), default=list, blank=True, help_text="List of accessible Process IDs like ['P_MAN_0001', 'P_DOC_0002']")
@@ -310,7 +307,7 @@ class User_header_all(models.Model):
         blank=True,
         related_name='user_assignments'
     )
-    project_id = models.JSONField(default=dict,blank=True,null=True)
+    project_id = JSONField(default=dict, blank=True, null=True)
     user_type = models.IntegerField(choices=USER_TYPE_CHOICES, default=1)
     status = models.IntegerField(choices=STATUS_CHOICES, default=1)
     inserted_on = models.DateTimeField(auto_now_add=True)
@@ -438,3 +435,84 @@ class User_header_all(models.Model):
             raise ValueError(f"Projects {invalid_projects} do not belong to department {dept_id}")
         self.project_id[dept_id] = project_ids
         self.save()
+
+class UserLandJurisdictionDetailsAll(models.Model):
+    TALUKA_TYPE_CHOICES = (
+        (1, 'Multiple'),
+        (2, 'All'),
+    )
+
+    uljd_id = models.CharField(max_length=20, unique=True, blank=True, null=True)
+    user_id = models.ForeignKey('User_header_all', on_delete=models.CASCADE, null=True, blank=True, related_name='land_jurisdictions')
+    state_id = models.ForeignKey('StateHeaderAll', on_delete=models.CASCADE, null=True, blank=True)
+    dist_id = models.ForeignKey('DistrictHeaderAll', on_delete=models.CASCADE, null=True, blank=True)
+    taluka_type = models.IntegerField(choices=TALUKA_TYPE_CHOICES, null=True, blank=True, help_text="1: Multiple, 2: All")
+    tal_id_1 = JSONField(null=True, blank=True, help_text="{tal_id:XXX, vil_id:[xxx,xxx,xxx,...], vil_type:X(1:multiple,2:all)}")
+    up_to_50 = models.IntegerField(null=True, blank=True)
+    uljd_line_no = models.IntegerField(null=True, blank=True, help_text="against user_id")
+    uljd_inserted_on = models.DateTimeField(null=True, blank=True)
+    uljd_valid_till = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'user_land_jurisdiction_details_all'
+
+    def __str__(self):
+        return f"ULJD {self.uljd_id} - User {self.user_id}"
+
+    @classmethod
+    def get_or_assign_uljd_id(cls, user_id):
+        existing_record = cls.objects.filter(user_id=user_id).first()
+        if existing_record and existing_record.uljd_id:
+            return existing_record.uljd_id
+        unique_id, _ = UniqueIdHeaderAll.objects.get_or_create(
+            table_name='user_land_jurisdiction_details_all',
+            id_for='uljd_id',
+            defaults={
+                'prefix': 'ULJD',
+                'last_id': '',
+                'created_on': timezone.now(),
+                'modified_on': timezone.now()
+            }
+        )
+        return unique_id.get_next_id()
+
+    def save(self, *args, **kwargs):
+        if not self.uljd_id:
+            self.uljd_id = self.get_or_assign_uljd_id(self.user_id)
+        super().save(*args, **kwargs)
+
+class UserProjectJurisdictionDetailsAll(models.Model):
+    upjd_id = models.CharField(max_length=20, unique=True, blank=True, null=True)
+    user_id = models.ForeignKey('User_header_all', on_delete=models.CASCADE, null=True, blank=True, related_name='project_jurisdictions')
+    upjd_line_no = models.IntegerField(null=True, blank=True)
+    project_id_1 = JSONField(null=True, blank=True, help_text="{project_id:XXX, allocated_on:XXX}")
+    up_to_50 = models.IntegerField(null=True, blank=True)
+    old_project_id_1 = JSONField(null=True, blank=True, help_text="{project_id:XXX, allocated_on:XXX, removed_on:XXX}")
+
+    class Meta:
+        db_table = 'user_project_jurisdiction_details_all'
+
+    def __str__(self):
+        return f"UPJD {self.upjd_id} - User {self.user_id}"
+
+    @classmethod
+    def get_or_assign_upjd_id(cls, user_id):
+        existing_record = cls.objects.filter(user_id=user_id).first()
+        if existing_record and existing_record.upjd_id:
+            return existing_record.upjd_id
+        unique_id, _ = UniqueIdHeaderAll.objects.get_or_create(
+            table_name='user_project_jurisdiction_details_all',
+            id_for='upjd_id',
+            defaults={
+                'prefix': 'UPJD',
+                'last_id': '',
+                'created_on': timezone.now(),
+                'modified_on': timezone.now()
+            }
+        )
+        return unique_id.get_next_id()
+
+    def save(self, *args, **kwargs):
+        if not self.upjd_id:
+            self.upjd_id = self.get_or_assign_upjd_id(self.user_id)
+        super().save(*args, **kwargs)
