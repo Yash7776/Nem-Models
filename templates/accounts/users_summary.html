@@ -26,7 +26,8 @@
                         <th>Active Profiles</th>
                         <th>Inactive Profiles</th>
                         <th>Status</th>
-                        <th>Actions</th>
+                        <th>Edit</th>
+                        <th>View</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -71,6 +72,11 @@
                         <td>
                             <a href="{% url 'edit_user' entry.user.id %}" class="btn btn-sm btn-outline-primary">
                                 <i class="bi bi-pencil-square"></i>
+                            </a>
+                        </td>
+                        <td>
+                            <a href="{% url 'user_detail' entry.user.username %}" class="btn btn-sm btn-outline-dark">
+                                <i class="bi bi-eye"></i>
                             </a>
                         </td>
                     </tr>
